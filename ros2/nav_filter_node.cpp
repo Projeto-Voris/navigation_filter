@@ -11,6 +11,7 @@
 #include "sensor_msgs/msg/imu.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
+#include "lifecycle_msgs/msg/state.hpp"
 
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
@@ -53,7 +54,7 @@ class NavFilter : public LifecycleNode
       try
       {
         rclcpp::Time now = this->get_clock()->now();
-        
+
         imu_transform_ = tf_buffer_.lookupTransform(
                 "base_link", "imu_link", tf2::TimePointZero);
         twist_transform_ = tf_buffer_.lookupTransform(
@@ -71,20 +72,29 @@ class NavFilter : public LifecycleNode
     }
 
   private:
-    void imu_callback(const sensor_msgs::msg::Imu & msg) const
+    void imu_callback(const sensor_msgs::msg::Imu & msg)
     {
-      RCLCPP_INFO(this->get_logger(), "IMU message received");
-      auto message = nav_msgs::msg::Odometry();
-      RCLCPP_INFO(this->get_logger(), "Publishing");
-      publisher_->publish(message);
+      if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+      {
+        RCLCPP_INFO(this->get_logger(), "IMU message received");
+        auto message = nav_msgs::msg::Odometry();
+        RCLCPP_INFO(this->get_logger(), "Publishing");
+        publisher_->publish(message);
+      }
     }
-    void pose_callback(const geometry_msgs::msg::PoseStamped & msg) const
+    void pose_callback(const geometry_msgs::msg::PoseStamped & msg)
     {
-      RCLCPP_INFO(this->get_logger(), "Pose message received");
+      if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+      {
+        RCLCPP_INFO(this->get_logger(), "Pose message received");
+      }
     }
-    void twist_callback(const geometry_msgs::msg::TwistStamped & msg) const
+    void twist_callback(const geometry_msgs::msg::TwistStamped & msg)
     {
-      RCLCPP_INFO(this->get_logger(), "Twist message received");
+      if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+      {
+        RCLCPP_INFO(this->get_logger(), "Twist message received");
+      }
     }
 
     tf2_ros::Buffer tf_buffer_;

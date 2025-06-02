@@ -12,6 +12,8 @@ find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
+find_package(tf2_ros REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -29,10 +31,14 @@ if(BUILD_TESTING)
 endif()
 
 add_executable(nav_filter ros2/nav_filter_node.cpp)
-ament_target_dependencies(nav_filter rclcpp std_msgs nav_msgs sensor_msgs geometry_msgs)
+ament_target_dependencies(nav_filter rclcpp std_msgs nav_msgs sensor_msgs geometry_msgs rclcpp_lifecycle tf2_ros)
 
 install(TARGETS
   nav_filter
   DESTINATION lib/${PROJECT_NAME})
+  
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
 
 ament_package()

@@ -9,6 +9,9 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -26,7 +29,7 @@ if(BUILD_TESTING)
 endif()
 
 add_executable(nav_filter ros2/nav_filter_node.cpp)
-ament_target_dependencies(nav_filter rclcpp std_msgs)
+ament_target_dependencies(nav_filter rclcpp std_msgs nav_msgs sensor_msgs geometry_msgs)
 
 install(TARGETS
   nav_filter

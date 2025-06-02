@@ -55,12 +55,19 @@ class NavFilter : public LifecycleNode
       {
         rclcpp::Time now = this->get_clock()->now();
 
+        this->get_parameter("base_link", base_link_);
+        this->get_parameter("imu_link", imu_link_);
+        this->get_parameter("twist_link", twist_link_);
+        this->get_parameter("pose_link", pose_link_);
+
+        RCLCPP_INFO(get_logger(), "Pose link: %s", pose_link_.c_str());
+
         imu_transform_ = tf_buffer_.lookupTransform(
-                "base_link", "imu_link", tf2::TimePointZero);
+                base_link_, imu_link_, tf2::TimePointZero);
         twist_transform_ = tf_buffer_.lookupTransform(
-                "imu_link", "twist_link", tf2::TimePointZero);
+                imu_link_, twist_link_, tf2::TimePointZero);
         pose_transform_ = tf_buffer_.lookupTransform(
-                "imu_link", "pose_link", tf2::TimePointZero);
+                imu_link_, pose_link_, tf2::TimePointZero);
       }
       catch(const tf2::TransformException & ex)
       {
@@ -69,6 +76,11 @@ class NavFilter : public LifecycleNode
       }
 
       return CallbackReturn::SUCCESS;
+    }
+
+    CallbackReturn on_activate(const rclcpp_lifecycle::State &)
+    {
+      RCLCPP_INFO(this->get_logger(), "Activating Navigation Filter");
     }
 
   private:
@@ -105,6 +117,11 @@ class NavFilter : public LifecycleNode
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_stamped_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_stamped_subscription_;
+
+    std::string base_link_;
+    std::string twist_link_;
+    std::string pose_link_;
+    std::string imu_link_;
 
     geometry_msgs::msg::TransformStamped imu_transform_;
     geometry_msgs::msg::TransformStamped twist_transform_;

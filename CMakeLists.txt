@@ -36,8 +36,12 @@ ament_target_dependencies(nav_filter rclcpp std_msgs nav_msgs sensor_msgs geomet
 install(TARGETS
   nav_filter
   DESTINATION lib/${PROJECT_NAME})
-  
+
 install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+install(DIRECTORY
+  config
   DESTINATION share/${PROJECT_NAME}
 )
 

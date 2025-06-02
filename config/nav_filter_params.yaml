@@ -1,6 +1,7 @@
 nav_filter:
-  ros__parameters:
-    base_link: "base_link"
-    imu_link: "imu_link"
-    twist_link: "twist_link"
-    pose_link: "pose_link"
+  nav_filter:
+    ros__parameters:
+      base_link: "base_link"
+      imu_link: "imu_link"
+      twist_link: "twist_link"
+      pose_link: "pose_link"

@@ -30,6 +30,8 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+add_library(nav_filter_lib navigation_filter/src/nav_filter.cpp)
+
 add_executable(nav_filter ros2/nav_filter_node.cpp)
 ament_target_dependencies(nav_filter rclcpp std_msgs nav_msgs sensor_msgs geometry_msgs rclcpp_lifecycle tf2_ros)
 

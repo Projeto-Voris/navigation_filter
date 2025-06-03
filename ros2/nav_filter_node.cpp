@@ -60,14 +60,14 @@ class NavFilter : public LifecycleNode
         this->get_parameter("twist_link", twist_link_);
         this->get_parameter("pose_link", pose_link_);
 
-        RCLCPP_INFO(get_logger(), "Pose link: %s", pose_link_.c_str());
-
         imu_transform_ = tf_buffer_.lookupTransform(
                 base_link_, imu_link_, tf2::TimePointZero);
         twist_transform_ = tf_buffer_.lookupTransform(
                 imu_link_, twist_link_, tf2::TimePointZero);
         pose_transform_ = tf_buffer_.lookupTransform(
                 imu_link_, pose_link_, tf2::TimePointZero);
+
+        RCLCPP_INFO(get_logger(), "Navigation Filter Configured");
       }
       catch(const tf2::TransformException & ex)
       {
@@ -81,6 +81,7 @@ class NavFilter : public LifecycleNode
     CallbackReturn on_activate(const rclcpp_lifecycle::State &)
     {
       RCLCPP_INFO(this->get_logger(), "Activating Navigation Filter");
+      
       return CallbackReturn::SUCCESS;
     }
 

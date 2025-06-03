@@ -1,39 +1,31 @@
 #include <eigen3/Eigen/Dense>
+#include "imu_model.cpp"
+#include "twist_model.cpp"
+#include "pose_model.cpp"
 
 class NavFilter
 {
 private:
-    // IMU parameters
-    float imu_update_time;
-    Eigen::Matrix4f transform_imu_base;
-    Eigen::Vector3f accelerometer_random_walk;
-    Eigen::Vector3f gyroscope_random_walk;
-    
-    Eigen::Vector3f accelerometer_noise;
-    Eigen::Vector3f gyroscope_noise;
-
-    //Twist parameters
-    float twist_update_time;
-    Eigen::Matrix4f transform_twist_imu;
-    Eigen::Vector3f twist_noise;
-
-    //Pose parameters
-    float pose_update_time;
-    Eigen::Matrix4f transform_pose_imu;
-    Eigen::Vector3f pose_noise;
+    IMUModel imu;
+    TwistModel twist;
+    PoseModel pose;
 
     //Filter parameters
     Eigen::Matrix<float, 18, 1> error;
     Eigen::Matrix<float, 18, 18> error_covariance;
     Eigen::Matrix<float, 3, 1> corr_T;
     Eigen::Matrix<float, 3, 1> corr_noise;
+
 public:
-    NavFilter(/* args */);
+    NavFilter(IMUModel imu_model, TwistModel twist_model, PoseModel pose_model);
     ~NavFilter();
 };
 
-NavFilter::NavFilter(/* args */)
+NavFilter::NavFilter(IMUModel imu_model, TwistModel twist_model, PoseModel pose_model)
 {
+    imu = imu_model;
+    twist = twist_model;
+    pose = pose_model;
 }
 
 NavFilter::~NavFilter()

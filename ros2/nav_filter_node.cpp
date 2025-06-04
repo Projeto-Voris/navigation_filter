@@ -16,7 +16,7 @@
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
 
-#include "navigation_filter/navigation_filter_library/include/nav_filter.hpp"
+#include "nav_filter.hpp"
 
 using namespace std::chrono_literals;
 using rclcpp_lifecycle::LifecycleNode;
@@ -25,10 +25,10 @@ using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface
 /* This example creates a subclass of Node and uses std::bind() to register a
 * member function as a callback from the timer. */
 
-class NavFilter : public LifecycleNode
+class NavFilterNode : public LifecycleNode
 {
   public:
-    NavFilter(const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
+    NavFilterNode(const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
     : LifecycleNode("nav_filter", options),
       tf_buffer_(this->get_clock()),
       tf_listener_(tf_buffer_)
@@ -41,13 +41,13 @@ class NavFilter : public LifecycleNode
       publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
 
       imu_subscription_ = this->create_subscription<sensor_msgs::msg::Imu>(
-      "/imu", 10, std::bind(&NavFilter::imu_callback, this, std::placeholders::_1));
+      "/imu", 10, std::bind(&NavFilterNode::imu_callback, this, std::placeholders::_1));
 
       pose_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-      "/pose_stamped", 10, std::bind(&NavFilter::pose_callback, this, std::placeholders::_1));
+      "/pose_stamped", 10, std::bind(&NavFilterNode::pose_callback, this, std::placeholders::_1));
 
       twist_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
-      "/twist", 10, std::bind(&NavFilter::twist_callback, this, std::placeholders::_1));
+      "/twist", 10, std::bind(&NavFilterNode::twist_callback, this, std::placeholders::_1));
     }
   protected:
     CallbackReturn on_configure(const rclcpp_lifecycle::State &)
@@ -137,7 +137,7 @@ class NavFilter : public LifecycleNode
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  auto filter_node = std::make_shared<NavFilter>();
+  auto filter_node = std::make_shared<NavFilterNode>();
   rclcpp::spin(filter_node->get_node_base_interface());
   rclcpp::shutdown();
   return 0;

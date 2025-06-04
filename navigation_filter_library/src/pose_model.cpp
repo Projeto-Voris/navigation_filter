@@ -1,18 +1,5 @@
 #include <eigen3/Eigen/Dense>
-
-class PoseModel
-{
-private:
-    //Twist parameters
-    float update_time;
-    Eigen::Matrix4f transform_pose_imu;
-    Eigen::Vector3f pose_noise;
-
-public:
-    PoseModel(Eigen::Matrix4f transform_imu, Eigen::Vector3f noise, float dt);
-    PoseModel(const PoseModel& other);
-    ~PoseModel();
-};
+#include "pose_model.hpp"
 
 PoseModel::PoseModel(Eigen::Matrix4f transform_imu, Eigen::Vector3f noise, float dt)
 {

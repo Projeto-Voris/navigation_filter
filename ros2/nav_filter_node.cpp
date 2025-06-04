@@ -16,6 +16,8 @@
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
 
+#include "navigation_filter/navigation_filter_library/include/nav_filter.hpp"
+
 using namespace std::chrono_literals;
 using rclcpp_lifecycle::LifecycleNode;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;

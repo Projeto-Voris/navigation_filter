@@ -10,6 +10,9 @@ private:
     TwistModel twist;
     PoseModel pose;
 
+    Eigen::Matrix<float, 3, 1> gravity;
+    gravity << 0,0,9.81;
+
     //Filter parameters
     Eigen::Matrix<float, 18, 1> error;
     Eigen::Matrix<float, 18, 18> error_covariance;

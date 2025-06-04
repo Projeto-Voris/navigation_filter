@@ -10,6 +10,7 @@ private:
 
 public:
     TwistModel(Eigen::Matrix4f transform_imu, Eigen::Vector3f noise, float dt);
+    TwistModel(const TwistModel& other);
     ~TwistModel();
 };
 
@@ -19,7 +20,12 @@ TwistModel::TwistModel(Eigen::Matrix4f transform_imu, Eigen::Vector3f noise, flo
     twist_noise = noise;
     update_time = dt;
 }
-
+TwistModel::TwistModel(const TwistModel& other)
+    : update_time(other.update_time),
+      transform_twist_imu(other.transform_twist_imu),
+      twist_noise(other.twist_noise)
+{
+}
 TwistModel::~TwistModel()
 {
 }

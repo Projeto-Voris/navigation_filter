@@ -14,6 +14,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(Eigen3 REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -30,12 +31,16 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_library(nav_filter_lib navigation_filter/src/nav_filter.cpp)
+add_library(nav_filter_lib navigation_filter_library/src/nav_filter.cpp)
+target_include_directories(nav_filter_lib PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<INSTALL_INTERFACE:include>)
+target_link_libraries(nav_filter_lib Eigen3::Eigen)
 
 add_executable(nav_filter ros2/nav_filter_node.cpp)
+target_link_libraries(nav_filter nav_filter_lib)
 ament_target_dependencies(nav_filter rclcpp std_msgs nav_msgs sensor_msgs geometry_msgs rclcpp_lifecycle tf2_ros)
 
 install(TARGETS
+  nav_filter_lib
   nav_filter
   DESTINATION lib/${PROJECT_NAME})
 

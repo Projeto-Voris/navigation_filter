@@ -1,4 +1,5 @@
 #include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Eigen>
 
 class IMUModel
 {
@@ -12,8 +13,9 @@ private:
     Eigen::Vector3f accelerometer_noise;
     Eigen::Vector3f gyroscope_noise;
 public:
-    IMUModel(Eigen::Matrix4f transform_base, Eigen::Vector3f acc_random_walk, Eigen::Vector3f gyro_random_walk, Eigen::Vector3f acc_noise, Eigen::Vector3f gyro_noise, float dt);
+    IMUModel(const Eigen::Matrix4f& transform_base, const Eigen::Vector3f& acc_random_walk, const Eigen::Vector3f& gyro_random_walk, const Eigen::Vector3f& acc_noise, const Eigen::Vector3f& gyro_noise, float dt);
     IMUModel(const IMUModel& other);
+    IMUModel& operator=(const IMUModel& other);
     ~IMUModel();
 };
 
@@ -40,6 +42,11 @@ IMUModel::IMUModel(const IMUModel& other)
       accelerometer_noise(other.accelerometer_noise),
       gyroscope_noise(other.gyroscope_noise)
 {
+}
+IMUModel& IMUModel::operator=(const IMUModel& other)
+{
+    update_time = other.update_time;
+    return *this;
 }
 
 IMUModel::~IMUModel()

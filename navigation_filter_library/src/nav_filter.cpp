@@ -8,8 +8,8 @@ class NavFilter
 {
 private:
     IMUModel imu;
-    //TwistModel twist;
-    //PoseModel pose;
+    TwistModel twist;
+    PoseModel pose;
 
     const Eigen::Vector3f gravity = Eigen::Vector3f(0, 0, 9.81);
 
@@ -20,14 +20,13 @@ private:
     Eigen::Matrix<float, 3, 1> corr_noise;
 
 public:
-    NavFilter(const IMUModel& imu_model);
+    NavFilter(const IMUModel& imu_model, const TwistModel& twist_model, const PoseModel& pose_model);
     ~NavFilter();
 };
 
-NavFilter::NavFilter(const IMUModel& imu_model) :imu(imu_model)
+NavFilter::NavFilter(const IMUModel& imu_model, const TwistModel& twist_model, const PoseModel& pose_model) :imu(imu_model), twist(twist_model), pose(pose_model)
 {
-    //twist = twist_model;
-    //pose = pose_model;
+    
 }
 
 NavFilter::~NavFilter()

@@ -1,7 +1,7 @@
 #include <eigen3/Eigen/Dense>
 #include "pose_model.hpp"
 
-PoseModel::PoseModel(Eigen::Matrix4f transform_imu, Eigen::Vector3f noise, float dt)
+PoseModel::PoseModel(Eigen::Matrix4f transform_imu, Eigen::Vector3d noise, float dt)
 {
     transform_pose_imu = transform_imu;
     pose_noise = noise;
@@ -11,8 +11,13 @@ PoseModel::PoseModel(const PoseModel& other)
     : update_time(other.update_time),
       transform_pose_imu(other.transform_pose_imu),
       pose_noise(other.pose_noise)
+{}
+PoseModel::PoseModel(Eigen::Matrix4f transform_imu, std::vector<double> noise, float dt):transform_pose_imu(transform_imu), update_time(dt)
 {
+    pose_noise = Eigen::Map<Eigen::Vector3d>(noise.data(), noise.size());
 }
+PoseModel::PoseModel()
+{}
 PoseModel::~PoseModel()
 {
 }

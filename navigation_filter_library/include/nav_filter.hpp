@@ -23,6 +23,7 @@ private:
 
 public:
     NavFilter(const IMUModel& imu_model, const TwistModel& twist_model, const PoseModel& pose_model);
+    NavFilter();
     ~NavFilter();
 };
 

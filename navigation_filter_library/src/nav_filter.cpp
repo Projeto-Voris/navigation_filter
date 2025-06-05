@@ -10,7 +10,8 @@ NavFilter::NavFilter(const IMUModel& imu_model, const TwistModel& twist_model, c
 {
     
 }
-
+NavFilter::NavFilter()
+{}
 NavFilter::~NavFilter()
 {
 }

@@ -2,7 +2,17 @@ nav_filter:
   nav_filter:
     ros__parameters:
       base_link: "base_link"
-      imu_link: "imu_link"
-      twist_link: "twist_link"
-      pose_link: "pose_link"
+      twist.link: "twist_link"
+      twist.noise: [0.0, 0.0, 0.0]
+      twist.update_time: 0.05
+      pose.link: "pose_link"
+      pose.noise: [0.0, 0.0, 0.0]
+      pose.update_time: 0.1
+      imu.link: "imu_link"
+      imu.accelerometer_random_walk_bias: [0.0, 0.0, 0.0]
+      imu.gyroscope_random_walk_bias: [0.0, 0.0, 0.0]
+      imu.accelerometer_noise: [0.0, 0.0, 0.0]
+      imu.gyroscope_noise: [0.0, 0.0, 0.0]
+      imu.update_time: 0.01
+      
       

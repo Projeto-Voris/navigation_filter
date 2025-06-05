@@ -2,6 +2,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
@@ -17,6 +18,7 @@
 #include "tf2_ros/buffer.h"
 
 #include "nav_filter.hpp"
+#include "imu_model.hpp"
 
 using namespace std::chrono_literals;
 using rclcpp_lifecycle::LifecycleNode;
@@ -34,9 +36,22 @@ class NavFilterNode : public LifecycleNode
       tf_listener_(tf_buffer_)
     {
       this->declare_parameter<std::string>("base_link", "base_link");
-      this->declare_parameter<std::string>("imu_link",  "base_link");
-      this->declare_parameter<std::string>("twist_link",  "base_link");
-      this->declare_parameter<std::string>("pose_link",  "base_link");
+
+      this->declare_parameter<std::string>("imu.link",  "base_link");
+      this->declare_parameter<std::vector<double>>("imu.accelerometer_random_walk_bias", {0,0,0});
+      this->declare_parameter<std::vector<double>>("imu.gyroscope_random_walk_bias", {0,0,0});
+      this->declare_parameter<std::vector<double>>("imu.accelerometer_noise", {0,0,0});
+      this->declare_parameter<std::vector<double>>("imu.gyroscope_noise", {0,0,0});
+      this->declare_parameter<float>("imu.update_time",  0.01);
+
+
+      this->declare_parameter<std::string>("twist.link",  "base_link");
+      this->declare_parameter<std::vector<float>>("twist.noise", {0,0,0});
+      this->declare_parameter<float>("twist.update_time",  0.01);
+
+      this->declare_parameter<std::string>("pose.link",  "base_link");
+      this->declare_parameter<std::vector<float>>("pose.noise", {0,0,0});
+      this->declare_parameter<float>("pose.update_time",  0.01);
 
       publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
 
@@ -58,9 +73,21 @@ class NavFilterNode : public LifecycleNode
         rclcpp::Time now = this->get_clock()->now();
 
         this->get_parameter("base_link", base_link_);
-        this->get_parameter("imu_link", imu_link_);
-        this->get_parameter("twist_link", twist_link_);
-        this->get_parameter("pose_link", pose_link_);
+
+        this->get_parameter("imu.link", imu_link_);
+        std::vector<double> acc_bias = this->get_parameter("imu.accelerometer_random_walk_bias").as_double_array();
+        std::vector<double> gyro_bias = this->get_parameter("imu.gyroscope_random_walk_bias").as_double_array();
+        std::vector<double> acc_noise = this->get_parameter("imu.accelerometer_noise").as_double_array();
+        std::vector<double> gyro_noise = this->get_parameter("imu.gyroscope_noise").as_double_array();
+        double imu_update_time = this->get_parameter("imu.update_time").as_double();
+
+        this->get_parameter("twist.link", twist_link_);
+        std::vector<double> twist_noise = this->get_parameter("twist.noise").as_double_array();
+        double twist_update_time = this->get_parameter("twist.update_time").as_double();
+
+        this->get_parameter("pose.link", pose_link_);
+        std::vector<double> pose_noise = this->get_parameter("pose.noise").as_double_array();
+        double pose_update_time = this->get_parameter("pose.update_time").as_double();
 
         imu_transform_ = tf_buffer_.lookupTransform(
                 base_link_, imu_link_, tf2::TimePointZero);
@@ -68,6 +95,21 @@ class NavFilterNode : public LifecycleNode
                 imu_link_, twist_link_, tf2::TimePointZero);
         pose_transform_ = tf_buffer_.lookupTransform(
                 imu_link_, pose_link_, tf2::TimePointZero);
+
+        Eigen::Matrix4f imu_transform_matrix = NavFilterNode::get_matrix_from_tf(imu_transform_);
+        Eigen::Matrix4f twist_transform_matrix = NavFilterNode::get_matrix_from_tf(twist_transform_);
+        Eigen::Matrix4f pose_transform_matrix = NavFilterNode::get_matrix_from_tf(pose_transform_);
+
+        IMUModel imu_model(imu_transform_matrix,acc_bias, gyro_bias, acc_noise, gyro_noise, float(imu_update_time));
+        TwistModel twist_model(twist_transform_matrix, twist_noise, float(twist_update_time));
+        PoseModel pose_model(pose_transform_matrix, pose_noise, float(pose_update_time));
+
+        NavFilter filter_(imu_model, twist_model, pose_model);
+
+        RCLCPP_INFO(get_logger(), "Base: %s", base_link_.c_str());
+        RCLCPP_INFO(get_logger(), "IMU: %s", imu_link_.c_str());
+        RCLCPP_INFO(get_logger(), "Twist: %s", twist_link_.c_str());
+        RCLCPP_INFO(get_logger(), "Pose: %s", pose_link_.c_str());
 
         RCLCPP_INFO(get_logger(), "Navigation Filter Configured");
       }
@@ -112,6 +154,28 @@ class NavFilterNode : public LifecycleNode
         RCLCPP_INFO(this->get_logger(), "Twist message received");
       }
     }
+    Eigen::Matrix4f get_matrix_from_tf(const geometry_msgs::msg::TransformStamped tf){
+      Eigen::Matrix4f transform;
+      transform(0, 3) = tf.transform.translation.x;
+      transform(1, 3) = tf.transform.translation.y;
+      transform(2, 3) = tf.transform.translation.z;
+      transform(3, 3) = 1.0;
+  
+      Eigen::Quaternionf q(tf.transform.rotation.w, tf.transform.rotation.x, tf.transform.rotation.y, tf.transform.rotation.z);
+      Eigen::Matrix3f rotation = q.toRotationMatrix();
+  
+      // Adjust the rotation matrix to account for the frame transformation
+      Eigen::Matrix3f camera_to_base;
+      camera_to_base << 1, 0, 0,
+                        0, 1, 0,
+                        0, 0, 1;
+  
+      rotation = camera_to_base * rotation;
+      transform.block<3, 3>(0, 0) = rotation;
+      return transform;
+    }
+
+    NavFilter filter_;
 
     tf2_ros::Buffer tf_buffer_;
     tf2_ros::TransformListener tf_listener_;

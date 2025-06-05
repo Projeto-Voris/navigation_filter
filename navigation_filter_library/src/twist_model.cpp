@@ -1,7 +1,7 @@
 #include <eigen3/Eigen/Dense>
 #include "twist_model.hpp"  
 
-TwistModel::TwistModel(Eigen::Matrix4f transform_imu, Eigen::Vector3f noise, float dt)
+TwistModel::TwistModel(Eigen::Matrix4f transform_imu, Eigen::Vector3d noise, float dt)
 {
     transform_twist_imu = transform_imu;
     twist_noise = noise;
@@ -13,6 +13,12 @@ TwistModel::TwistModel(const TwistModel& other)
       twist_noise(other.twist_noise)
 {
 }
+TwistModel::TwistModel(Eigen::Matrix4f transform_imu, std::vector<double> noise, float dt):transform_twist_imu(transform_imu), update_time(dt)
+{
+    twist_noise = Eigen::Map<Eigen::Vector3d>(noise.data(), noise.size());
+}
+TwistModel::TwistModel()
+{}
 TwistModel::~TwistModel()
 {
 }

@@ -18,6 +18,7 @@ private:
     // Filter parameters
     Eigen::Matrix<float, 18, 1> error;
     Eigen::Matrix<float, 18, 18> error_covariance;
+    Eigen::Matrix<float, 18, 18> proccess_covariance;
     Eigen::Matrix<float, 3, 1> corr_T;
     Eigen::Matrix<float, 3, 1> corr_noise;
 
@@ -25,6 +26,11 @@ public:
     NavFilter(const IMUModel& imu_model, const TwistModel& twist_model, const PoseModel& pose_model);
     NavFilter();
     ~NavFilter();
+    
+    void propagate_error(Eigen::Matrix<float, 6,1> imu_measurement);
+
+    Eigen::Matrix<float, 18, 18> get_proccess_jacobian(Eigen::Matrix<float, 6,1> imu_measurement);
+    Eigen::Matrix<float, 18, 18> get_proccess_noise_jacobian();
 };
 
 #endif // NAV_FILTER_HPP

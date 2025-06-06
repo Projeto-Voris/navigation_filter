@@ -79,15 +79,15 @@ class NavFilterNode : public LifecycleNode
         std::vector<double> gyro_bias = this->get_parameter("imu.gyroscope_random_walk_bias").as_double_array();
         std::vector<double> acc_noise = this->get_parameter("imu.accelerometer_noise").as_double_array();
         std::vector<double> gyro_noise = this->get_parameter("imu.gyroscope_noise").as_double_array();
-        double imu_update_time = this->get_parameter("imu.update_time").as_double();
+        float imu_update_time = static_cast<float>(this->get_parameter("imu.update_time").as_double());
 
         this->get_parameter("twist.link", twist_link_);
         std::vector<double> twist_noise = this->get_parameter("twist.noise").as_double_array();
-        double twist_update_time = this->get_parameter("twist.update_time").as_double();
+        float twist_update_time = static_cast<float>(this->get_parameter("twist.update_time").as_double());
 
         this->get_parameter("pose.link", pose_link_);
         std::vector<double> pose_noise = this->get_parameter("pose.noise").as_double_array();
-        double pose_update_time = this->get_parameter("pose.update_time").as_double();
+        float pose_update_time = static_cast<float>(this->get_parameter("pose.update_time").as_double());
 
         imu_transform_ = tf_buffer_.lookupTransform(
                 base_link_, imu_link_, tf2::TimePointZero);

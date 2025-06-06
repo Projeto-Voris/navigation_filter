@@ -1,24 +1,41 @@
-#include <eigen3/Eigen/Dense>
-#include "twist_model.hpp"  
+#include "twist_model.hpp"
 
-TwistModel::TwistModel(Eigen::Matrix4f transform_imu, Eigen::Vector3d noise, float dt)
+Eigen::MatrixXf TwistModel::get_jacobian(ErrorState state)
 {
-    transform_twist_imu = transform_imu;
-    twist_noise = noise;
-    update_time = dt;
+    Eigen::Matrix<float, 6, 18> jacobian = Eigen::Matrix<float, 6, 18>::Zero();
+
+    jacobian(0, 0)  = -1;
+    jacobian(1, 1)  = -1;
+    jacobian(2, 2)  = -1;
+    jacobian(3, 6)  = -1;
+    jacobian(4, 7)  = -1;
+    jacobian(5, 8)  = -1;
+
+    return jacobian;
 }
-TwistModel::TwistModel(const TwistModel& other)
-    : update_time(other.update_time),
-      transform_twist_imu(other.transform_twist_imu),
-      twist_noise(other.twist_noise)
+Eigen::MatrixXf TwistModel::get_noise_jacobian(ErrorState state)
 {
+    Eigen::Matrix<float, 6, 18> jacobian = Eigen::Matrix<float, 6, 18>::Zero();
+
+    jacobian(0, 0)  = -1;
+    jacobian(1, 1)  = -1;
+    jacobian(2, 2)  = -1;
+    jacobian(3, 6)  = -1;
+    jacobian(4, 7)  = -1;
+    jacobian(5, 8)  = -1;
+
+    return jacobian;
 }
-TwistModel::TwistModel(Eigen::Matrix4f transform_imu, std::vector<double> noise, float dt):transform_twist_imu(transform_imu), update_time(dt)
+
+Eigen::MatrixXf TwistModel::get_measurement(ErrorState state)
 {
-    twist_noise = Eigen::Map<Eigen::Vector3d>(noise.data(), noise.size());
-}
-TwistModel::TwistModel()
-{}
-TwistModel::~TwistModel()
-{
+    Eigen::Vector<float, 18> error_state = state.get_error_vector();
+    Eigen::Vector<float, 3> error_position = error_state.segment(0,3);
+    Eigen::Vector<float, 3> error_orientation = error_state.segment(7,3);
+
+    Eigen::VectorXf result(error_position.size() + error_orientation.size());
+
+    result << error_position, error_orientation;
+    
+    return -result;
 }

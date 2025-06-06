@@ -3,21 +3,18 @@
 
 #include <eigen3/Eigen/Dense>
 #include <vector>
+#include "sensor_model.hpp"
 
-class PoseModel
+class PoseModel : public SensorModel
 {
-private:
-    //Twist parameters
-    float update_time;
-    Eigen::Matrix4f transform_pose_imu;
-    Eigen::Vector3d pose_noise;
+    private:
 
-public:
-    PoseModel(Eigen::Matrix4f transform_imu, Eigen::Vector3d noise, float dt);
-    PoseModel(Eigen::Matrix4f transform_imu, std::vector<double> noise, float dt);
-    PoseModel(const PoseModel& other);
-    PoseModel();
-    ~PoseModel();
+
+    public:
+        using SensorModel::SensorModel;
+        Eigen::MatrixXf get_jacobian(ErrorState state) override;
+        Eigen::MatrixXf get_noise_jacobian(ErrorState state) override;
+        Eigen::MatrixXf get_measurement(ErrorState state) override;
 };
 
 #endif

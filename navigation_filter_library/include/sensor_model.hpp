@@ -9,9 +9,9 @@ class SensorModel
 {
 private:
     //Twist parameters
-    float update_time;
-    Eigen::Matrix4f transform;
-    Eigen::MatrixXf covariance;
+    float update_time_;
+    Eigen::Matrix4f transform_;
+    Eigen::MatrixXf covariance_;
 
 public:
     SensorModel(Eigen::Matrix4f transform, Eigen::VectorXd noise, float dt);

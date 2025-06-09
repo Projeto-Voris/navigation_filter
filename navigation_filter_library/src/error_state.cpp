@@ -14,7 +14,7 @@ Eigen::Matrix<float, 18, 18> ErrorState::get_covariance()
 {
     return error_covariance_;
 }
-Eigen::Matrix<float, 18, 1> ErrorState::get_error_vector()
+Eigen::Vector<float, 18> ErrorState::get_error_vector()
 {
     Eigen::Vector<float, 18> error_vector;
     error_vector << error_position_, error_velocity_, error_orientation_,

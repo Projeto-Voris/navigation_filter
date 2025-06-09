@@ -2,10 +2,6 @@
 
 #include "sensor_model.hpp"
 
-SensorModel::SensorModel(Eigen::Matrix4f transform, Eigen::VectorXd noise, float dt):transform_(transform), update_time_(dt)
-{
-    covariance_ = noise.asDiagonal();
-}
 SensorModel::SensorModel(const SensorModel& other)
     : update_time_(other.update_time_),
       transform_(other.transform_),
@@ -28,7 +24,22 @@ Eigen::Matrix4f SensorModel::get_transform()
 {
     return transform_;
 }
-Eigen::MatrixXf SensorModel::get_covariance()
+Eigen::MatrixXd SensorModel::get_covariance()
 {
     return covariance_;
+}
+
+// Define virtual functions with default implementations
+Eigen::MatrixXf SensorModel::get_jacobian(ErrorState state) {
+    // Default implementation
+    return Eigen::MatrixXf();
+}
+Eigen::MatrixXf SensorModel::get_noise_jacobian(ErrorState state) {
+    // Default implementation
+    return Eigen::MatrixXf();
+}
+
+Eigen::MatrixXf SensorModel::get_measurement(ErrorState state) {
+    // Default implementation
+    return Eigen::MatrixXf();
 }

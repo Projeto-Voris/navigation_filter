@@ -7,7 +7,7 @@
 
 class ProccessModel
 {
-private:
+protected:
     //Twist parameters
     float update_time_;
     Eigen::Matrix4f transform_;

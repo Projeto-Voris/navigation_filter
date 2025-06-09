@@ -14,5 +14,6 @@ nav_filter:
       imu.accelerometer_noise: [0.0, 0.0, 0.0]
       imu.gyroscope_noise: [0.0, 0.0, 0.0]
       imu.update_time: 0.01
+      imu.correlation_noise: [0.0, 0.0, 0.0]
       
       

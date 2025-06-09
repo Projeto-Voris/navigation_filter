@@ -4,36 +4,21 @@
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Eigen>
 
-class IMUModel
+#include "proccess_model.hpp"
+
+class IMUModel : public ProccessModel
 {
 private:
-    // IMU parameters
-    float update_time;
-    Eigen::Matrix4f transform_imu_base;
-    Eigen::Vector3d accelerometer_random_walk;
-    Eigen::Vector3d gyroscope_random_walk;
-    Eigen::Vector3d accelerometer_noise;
-    Eigen::Vector3d gyroscope_noise;
 
 public:
-    IMUModel(const Eigen::Matrix4f& transform_base,
-             const Eigen::Vector3f& acc_random_walk,
-             const Eigen::Vector3f& gyro_random_walk,
-             const Eigen::Vector3f& acc_noise,
-             const Eigen::Vector3f& gyro_noise,
-             float dt);
-
+    using ProccessModel::ProccessModel;
     IMUModel(const Eigen::Matrix4f& transform_base,
              std::vector<double> acc_random_walk,
              std::vector<double> gyro_random_walk,
              std::vector<double> acc_noise,
              std::vector<double> gyro_noise,
+             std::vector<double> corr_noise,
              float dt);
-
-    IMUModel(const IMUModel& other);
-    IMUModel& operator=(const IMUModel& other);
-    IMUModel();
-    ~IMUModel();
 };
 
 #endif // IMU_MODEL_HPP

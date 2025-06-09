@@ -42,6 +42,7 @@ class NavFilterNode : public LifecycleNode
       this->declare_parameter<std::vector<double>>("imu.gyroscope_random_walk_bias", {0,0,0});
       this->declare_parameter<std::vector<double>>("imu.accelerometer_noise", {0,0,0});
       this->declare_parameter<std::vector<double>>("imu.gyroscope_noise", {0,0,0});
+      this->declare_parameter<std::vector<double>>("imu.correlation_noise", {0,0,0});
       this->declare_parameter<float>("imu.update_time",  0.01);
 
 
@@ -79,6 +80,7 @@ class NavFilterNode : public LifecycleNode
         std::vector<double> gyro_bias = this->get_parameter("imu.gyroscope_random_walk_bias").as_double_array();
         std::vector<double> acc_noise = this->get_parameter("imu.accelerometer_noise").as_double_array();
         std::vector<double> gyro_noise = this->get_parameter("imu.gyroscope_noise").as_double_array();
+        std::vector<double> corr_noise = this->get_parameter("imu.correlation_noise").as_double_array();
         float imu_update_time = static_cast<float>(this->get_parameter("imu.update_time").as_double());
 
         this->get_parameter("twist.link", twist_link_);
@@ -100,7 +102,7 @@ class NavFilterNode : public LifecycleNode
         Eigen::Matrix4f twist_transform_matrix = NavFilterNode::get_matrix_from_tf(twist_transform_);
         Eigen::Matrix4f pose_transform_matrix = NavFilterNode::get_matrix_from_tf(pose_transform_);
 
-        IMUModel imu_model(imu_transform_matrix,acc_bias, gyro_bias, acc_noise, gyro_noise, float(imu_update_time));
+        IMUModel imu_model(imu_transform_matrix,acc_bias, gyro_bias, acc_noise, gyro_noise, corr_noise, float(imu_update_time));
         TwistModel twist_model(twist_transform_matrix, twist_noise, float(twist_update_time));
         PoseModel pose_model(pose_transform_matrix, pose_noise, float(pose_update_time));
 

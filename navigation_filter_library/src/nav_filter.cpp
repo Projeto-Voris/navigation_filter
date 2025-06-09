@@ -18,11 +18,10 @@ NavFilter::~NavFilter()
 
 void NavFilter::propagate_error(Eigen::Matrix<float, 6,1> imu_measurement)
 {
-    Eigen::Matrix<float, 18, 18> A_k = this->get_proccess_jacobian(imu_measurement);
-    this->error = A_k * this->error;
-    
+    Eigen::Matrix<float, 18, 18> A_k = this->imu.get_jacobian(error_state, imu_measurement);
+    /*this->error = A_k * this->error_state.get_error_vector();
     Eigen::Matrix<float, 18, 18> B_k = this->get_proccess_noise_jacobian();
-    this->error_covariance = A_k*this->error_covariance*A_k.transpose() + B_k*this->proccess_covariance*B_k.transpose();
+    this->error_covariance = A_k*this->error_covariance*A_k.transpose() + B_k*this->proccess_covariance*B_k.transpose();*/
 }
 
 Eigen::Matrix<float, 18, 18> NavFilter::get_proccess_jacobian(Eigen::Matrix<float, 6,1> imu_measurement)

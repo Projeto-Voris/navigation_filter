@@ -15,12 +15,7 @@ private:
 
     const Eigen::Vector3f gravity = Eigen::Vector3f(0, 0, 9.81);
 
-    // Filter parameters
-    Eigen::Matrix<float, 18, 1> error;
-    Eigen::Matrix<float, 18, 18> error_covariance;
-    Eigen::Matrix<float, 18, 18> proccess_covariance;
-    Eigen::Matrix<float, 3, 1> corr_T;
-    Eigen::Matrix<float, 3, 1> corr_noise;
+    ErrorState error_state;
 
 public:
     NavFilter(const IMUModel& imu_model, const TwistModel& twist_model, const PoseModel& pose_model);

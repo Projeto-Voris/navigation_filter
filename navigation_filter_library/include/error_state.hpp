@@ -8,6 +8,10 @@ class ErrorState
 {
 private:
     
+    
+
+public:
+
     Eigen::Vector<float, 3> error_position_;
     Eigen::Vector<float, 3> error_velocity_;
     Eigen::Vector<float, 3> error_orientation_;
@@ -17,8 +21,7 @@ private:
     Eigen::Vector<float, 3> bv_;
 
     Eigen::Matrix<float, 18, 18> error_covariance_;
-
-public:
+    
     ErrorState(Eigen::Matrix<float, 18, 18> error_covariance);
 
     Eigen::Matrix<float, 18, 18> get_covariance();

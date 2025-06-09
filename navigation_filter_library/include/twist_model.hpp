@@ -4,6 +4,7 @@
 #include <eigen3/Eigen/Dense>
 #include <vector>
 #include "sensor_model.hpp"
+#include "state.hpp"
 
 class TwistModel : public SensorModel
 {
@@ -12,7 +13,7 @@ class TwistModel : public SensorModel
 
     public:
         using SensorModel::SensorModel;
-        Eigen::MatrixXf get_jacobian(ErrorState state) override;
+        Eigen::MatrixXf get_colored_jacobian(ErrorState e_state, State state);
         Eigen::MatrixXf get_noise_jacobian(ErrorState state) override;
         Eigen::MatrixXf get_measurement(ErrorState state) override;
 };

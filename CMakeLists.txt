@@ -31,6 +31,7 @@ add_library(nav_filter_lib
   navigation_filter_library/src/sensor_model.cpp
   navigation_filter_library/src/error_state.cpp
   navigation_filter_library/src/proccess_model.cpp
+  navigation_filter_library/src/state.cpp
 )
 target_link_libraries(nav_filter_lib Eigen3::Eigen)
 ament_target_dependencies(nav_filter_lib rclcpp)

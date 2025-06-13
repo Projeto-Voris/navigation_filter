@@ -8,7 +8,6 @@
 
 NavFilter::NavFilter(const IMUModel& imu_model, const TwistModel& twist_model, const PoseModel& pose_model) :imu(imu_model), twist(twist_model), pose(pose_model)
 {
-    
 }
 NavFilter::NavFilter()
 {}

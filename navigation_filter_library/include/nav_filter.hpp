@@ -5,6 +5,8 @@
 #include "imu_model.hpp"
 #include "twist_model.hpp"
 #include "pose_model.hpp"
+#include "error_state.hpp"
+#include "state.hpp"
 
 class NavFilter
 {

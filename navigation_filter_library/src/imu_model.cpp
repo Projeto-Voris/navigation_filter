@@ -8,7 +8,7 @@ IMUModel::IMUModel(const Eigen::Matrix4f& transform_base,
     std::vector<double> acc_noise,
     std::vector<double> gyro_noise,
     std::vector<double> corr_noise,
-    Eigen::Matrix3f corr_transform,
+    Eigen::Matrix3d corr_transform,
     float dt)
 {
     transform_ = transform_base;
@@ -130,7 +130,50 @@ Eigen::MatrixXf IMUModel::get_jacobian(ErrorState state, Eigen::VectorXf control
 
     return jacobian;
 }
-Eigen::MatrixXf get_noise_jacobian(ErrorState state)
+Eigen::MatrixXf IMUModel::get_noise_jacobian(ErrorState state)
 {
+    float dt = update_time_;
+    float lambda1 = state.error_orientation_(0);
+    float lambda2 = state.error_orientation_(1);
+    float lambda3 = state.error_orientation_(2);
 
+    Eigen::Matrix<float, 18, 18> jacobian = Eigen::Matrix<float, 18, 18>::Zero();
+
+    // Diagonal principal
+    for (int i = 0; i < 3; ++i) {
+        jacobian(i, i) = dt + 1;
+    }
+    for (int i = 3; i <= 5; ++i) {
+        jacobian(i, i) = dt + 1;
+    }
+    for (int i = 6; i <= 8; ++i) {
+        jacobian(i, i) = dt + 1;
+    }
+    for (int i = 9; i <= 14; ++i) {
+        jacobian(i, i) = 1 - dt;
+    }
+    for (int i = 15; i <= 17; ++i) {
+        jacobian(i, i) = dt + 1;
+    }
+
+    // Linhas específicas
+    jacobian(3, 4) = dt * lambda1;
+    jacobian(3, 5) = dt * lambda2;
+
+    jacobian(4, 3) = -dt * lambda1;
+    jacobian(4, 5) = dt * lambda3;
+
+    jacobian(5, 3) = -dt * lambda2;
+    jacobian(5, 4) = -dt * lambda3;
+
+    jacobian(6, 7) = dt * lambda1;
+    jacobian(6, 8) = dt * lambda2;
+
+    jacobian(7, 6) = -dt * lambda1;
+    jacobian(7, 8) = dt * lambda3;
+
+    jacobian(8, 6) = -dt * lambda2;
+    jacobian(8, 7) = -dt * lambda3;
+
+    return jacobian;
 }

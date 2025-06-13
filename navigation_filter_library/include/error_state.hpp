@@ -22,12 +22,12 @@ public:
 
     Eigen::Matrix<float, 18, 18> error_covariance_;
     
+    ErrorState();
     ErrorState(Eigen::Matrix<float, 18, 18> error_covariance);
 
     Eigen::Matrix<float, 18, 18> get_covariance();
     Eigen::Vector<float, 18> get_error_vector();
-
-    ErrorState();
+    
     ~ErrorState();
 };
 

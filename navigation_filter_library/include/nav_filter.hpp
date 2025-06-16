@@ -25,9 +25,11 @@ public:
     ~NavFilter();
     
     void propagate_error(Eigen::Matrix<float, 6,1> imu_measurement);
-
-    Eigen::Matrix<float, 18, 18> get_proccess_jacobian(Eigen::Matrix<float, 6,1> imu_measurement);
-    Eigen::Matrix<float, 18, 18> get_proccess_noise_jacobian();
+    void updateEKF(const Eigen::MatrixXf& measurement, 
+        const Eigen::MatrixXf& measurement_covariance, 
+        const Eigen::MatrixXf& jacobian_matrix, 
+        const Eigen::MatrixXf& predicted_measurement, 
+        const Eigen::MatrixXf& noise_jacobian_matrix);
 };
 
 #endif // NAV_FILTER_HPP

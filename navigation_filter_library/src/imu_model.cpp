@@ -28,26 +28,28 @@ IMUModel::IMUModel(const Eigen::Matrix4f& transform_base,
                      acc_rw_diag.cols() + gyro_rw_diag.cols() + corr_noise_diag.cols();
 
     // Initialize the covariance matrix
-    covariance_ = Eigen::MatrixXd::Zero(total_rows, total_cols);
+    Eigen::MatrixXd covariance(total_rows, total_cols);
 
     // Fill the block diagonal matrix
     int current_row = 0;
-    covariance_.block(current_row, current_row, eye_block.rows(), eye_block.cols()) = eye_block;
+    covariance.block(current_row, current_row, eye_block.rows(), eye_block.cols()) = eye_block;
     current_row += eye_block.rows();
 
-    covariance_.block(current_row, current_row, acc_noise_diag.rows(), acc_noise_diag.cols()) = acc_noise_diag;
+    covariance.block(current_row, current_row, acc_noise_diag.rows(), acc_noise_diag.cols()) = acc_noise_diag;
     current_row += acc_noise_diag.rows();
 
-    covariance_.block(current_row, current_row, gyro_noise_diag.rows(), gyro_noise_diag.cols()) = gyro_noise_diag;
+    covariance.block(current_row, current_row, gyro_noise_diag.rows(), gyro_noise_diag.cols()) = gyro_noise_diag;
     current_row += gyro_noise_diag.rows();
 
-    covariance_.block(current_row, current_row, acc_rw_diag.rows(), acc_rw_diag.cols()) = acc_rw_diag;
+    covariance.block(current_row, current_row, acc_rw_diag.rows(), acc_rw_diag.cols()) = acc_rw_diag;
     current_row += acc_rw_diag.rows();
 
-    covariance_.block(current_row, current_row, gyro_rw_diag.rows(), gyro_rw_diag.cols()) = gyro_rw_diag;
+    covariance.block(current_row, current_row, gyro_rw_diag.rows(), gyro_rw_diag.cols()) = gyro_rw_diag;
     current_row += gyro_rw_diag.rows();
 
-    covariance_.block(current_row, current_row, corr_noise_diag.rows(), corr_noise_diag.cols()) = corr_noise_diag;
+    covariance.block(current_row, current_row, corr_noise_diag.rows(), corr_noise_diag.cols()) = corr_noise_diag;
+
+    covariance_ = covariance.cast<float>();
 
 }
 

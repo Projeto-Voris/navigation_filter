@@ -35,6 +35,16 @@ Eigen::Vector<float, 18> ErrorState::get_error_vector()
                     error_ba_, error_bw_, bv_;
     return error_vector;
 }
+ErrorState& ErrorState::operator=(const Eigen::Vector<float, 18>& error_vector)
+{
+    error_position_ = error_vector.segment<3>(0);
+    error_velocity_ = error_vector.segment<3>(3);
+    error_orientation_ = error_vector.segment<3>(6);
+    error_ba_ = error_vector.segment<3>(9);
+    error_bw_ = error_vector.segment<3>(12);
+    bv_ = error_vector.segment<3>(15);
+    return *this;
+}
 ErrorState::~ErrorState()
 {
     // Destructor

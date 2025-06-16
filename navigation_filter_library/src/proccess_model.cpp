@@ -9,7 +9,8 @@ ProccessModel::ProccessModel(const ProccessModel& other)
 {}
 ProccessModel::ProccessModel(Eigen::Matrix4f transform, std::vector<double> noise, float dt):transform_(transform), update_time_(dt)
 {
-    covariance_ = Eigen::Map<Eigen::VectorXd>(noise.data(), noise.size()).asDiagonal();
+    std::vector<float> noise_float(noise.begin(), noise.end());
+    covariance_ = Eigen::Map<Eigen::VectorXf>(noise_float.data(), noise.size()).asDiagonal();
 }
 ProccessModel::ProccessModel()
 {}
@@ -24,7 +25,7 @@ Eigen::Matrix4f ProccessModel::get_transform()
 {
     return transform_;
 }
-Eigen::MatrixXd ProccessModel::get_covariance()
+Eigen::MatrixXf ProccessModel::get_covariance()
 {
     return covariance_;
 }

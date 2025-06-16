@@ -24,6 +24,7 @@ public:
     
     ErrorState();
     ErrorState(Eigen::Matrix<float, 18, 18> error_covariance);
+    ErrorState& operator=(const Eigen::Vector<float, 18>& error_vector);
 
     Eigen::Matrix<float, 18, 18> get_covariance();
     Eigen::Vector<float, 18> get_error_vector();

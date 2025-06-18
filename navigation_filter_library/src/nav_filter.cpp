@@ -49,6 +49,7 @@ void NavFilter::update_pose(Eigen::Matrix<float, 6,1> pose_measurement)
     Eigen::Matrix<float, 6, 18> noise_jacobian = pose.get_noise_jacobian(error_state);
 
     this->updateEKF(pose_measurement, measurement_covariance, jacobian, predicted_measurement, noise_jacobian);
+    state.position_ = state.position_ + error_state.error_position_;
 }
 
 void NavFilter::update_twist(Eigen::Matrix<float, 6,1> twist_measurement)
@@ -60,8 +61,12 @@ void NavFilter::update_twist(Eigen::Matrix<float, 6,1> twist_measurement)
 
     this->updateEKF(twist_measurement, measurement_covariance, jacobian, predicted_measurement, noise_jacobian);
 
-    
-
+    state.velocity_ = state.velocity_ + error_state.error_velocity_;
+}
+void NavFilter::update_imu(Eigen::Matrix<float, 6,1> imu_measurement)
+{
+    mechanization(imu_measurement);
+    propagate_error(imu_measurement);
 }
 
 void NavFilter::mechanization(Eigen::Matrix<float, 6,1> imu_measurement)

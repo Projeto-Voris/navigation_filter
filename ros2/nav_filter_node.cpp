@@ -139,6 +139,8 @@ class NavFilterNode : public LifecycleNode
     CallbackReturn on_activate(const rclcpp_lifecycle::State &)
     {
       RCLCPP_INFO(this->get_logger(), "Activating Navigation Filter");
+      rclcpp::Rate rate(0.5); // 0.5 Hz (2 seconds delay)
+      rate.sleep();
       
       return CallbackReturn::SUCCESS;
     }

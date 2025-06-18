@@ -60,11 +60,28 @@ void NavFilter::update_twist(Eigen::Matrix<float, 6,1> twist_measurement)
 
     this->updateEKF(twist_measurement, measurement_covariance, jacobian, predicted_measurement, noise_jacobian);
 
-}
-
-void update_imu(Eigen::Matrix<float, 6,1> imu_measurement)
-{
-    propagate_error(imu_measurement);
     
 
+}
+
+void NavFilter::mechanization(Eigen::Matrix<float, 6,1> imu_measurement)
+{
+    Eigen::Matrix<float, 3, 1> velocity_dot = this->C_n_b * imu_measurement.head<3>() + this->gravity;
+
+    Eigen::Matrix<float, 3, 1> alfa_delta = (imu_measurement.tail<3>() + this->last_gyro) / 2 * this->imu.update_time_;
+    Eigen::Matrix<float, 3, 1> beta_delta = 0.5 * (this->alfa + 1.0 / 6.0 * this->last_alfa_delta).cross(alfa_delta);
+
+    this->alfa += alfa_delta;
+    this->beta += beta_delta;
+
+    this->last_gyro = imu_measurement.tail<3>();
+    this->last_alfa = this->alfa;
+    this->last_beta = this->beta;
+    this->last_alfa_delta = alfa_delta;
+
+    this->state.position_ += this->state.velocity_ * this->imu.update_time_;
+    this->state.velocity_ += velocity_dot * this->imu.update_time_;
+    this->state.orientation_ = this->alfa + this->beta + this->last_orientation;
+
+    this->C_n_b = Eigen::AngleAxisf(this->state.orientation_.norm(), this->state.orientation_.normalized()).toRotationMatrix();
 }

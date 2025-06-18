@@ -46,6 +46,7 @@ public:
     void update_twist(Eigen::Matrix<float, 6,1> twist_measurement);
     void update_imu(Eigen::Matrix<float, 6,1> imu_measurement);
     void mechanization(Eigen::Matrix<float, 6,1> imu_measurement);
+    State get_state();
 };
 
 #endif // NAV_FILTER_HPP

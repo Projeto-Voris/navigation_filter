@@ -90,3 +90,7 @@ void NavFilter::mechanization(Eigen::Matrix<float, 6,1> imu_measurement)
 
     this->C_n_b = Eigen::AngleAxisf(this->state.orientation_.norm(), this->state.orientation_.normalized()).toRotationMatrix();
 }
+State NavFilter::get_state()
+{
+    return state;
+}

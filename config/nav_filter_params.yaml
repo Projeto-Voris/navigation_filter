@@ -15,7 +15,6 @@ nav_filter:
       imu.gyroscope_noise: [0.0, 0.0, 0.0]
       imu.update_time: 0.01
       imu.correlation_noise: [0.0, 0.0, 0.0]
-      imu.correlation_matrix:
-      - [0.0, 0.0, 0.0]
-      - [0.0, 0.0, 0.0]
-      - [0.0, 0.0, 0.0]
+      correlation_matrix.row0: [0.0, 0.0, 0.0]
+      correlation_matrix.row1: [0.0, 0.0, 0.0]
+      correlation_matrix.row2: [0.0, 0.0, 0.0]

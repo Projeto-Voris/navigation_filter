@@ -43,9 +43,9 @@ class NavFilterNode : public LifecycleNode
       this->declare_parameter<std::vector<double>>("imu.accelerometer_noise", {0,0,0});
       this->declare_parameter<std::vector<double>>("imu.gyroscope_noise", {0,0,0});
       this->declare_parameter<std::vector<double>>("imu.correlation_noise", {0,0,0});
-      this->declare_parameter<std::vector<double>>("imu.correlation_matrix.0", {0,0,0});
-      this->declare_parameter<std::vector<double>>("imu.correlation_matrix.1", {0,0,0});
-      this->declare_parameter<std::vector<double>>("imu.correlation_matrix.2", {0,0,0});
+      this->declare_parameter<std::vector<double>>("imu.correlation_matrix.row0", {0,0,0});
+      this->declare_parameter<std::vector<double>>("imu.correlation_matrix.row1", {0,0,0});
+      this->declare_parameter<std::vector<double>>("imu.correlation_matrix.row2", {0,0,0});
       this->declare_parameter<float>("imu.update_time",  0.01);
 
 
@@ -84,9 +84,9 @@ class NavFilterNode : public LifecycleNode
         std::vector<double> acc_noise = this->get_parameter("imu.accelerometer_noise").as_double_array();
         std::vector<double> gyro_noise = this->get_parameter("imu.gyroscope_noise").as_double_array();
         std::vector<double> corr_noise = this->get_parameter("imu.correlation_noise").as_double_array();
-        std::vector<double> corr_row_0 = this->get_parameter("imu.correlation_matrix.0").as_double_array();
-        std::vector<double> corr_row_1 = this->get_parameter("imu.correlation_matrix.1").as_double_array();
-        std::vector<double> corr_row_2 = this->get_parameter("imu.correlation_matrix.2").as_double_array();
+        std::vector<double> corr_row_0 = this->get_parameter("imu.correlation_matrix.row0").as_double_array();
+        std::vector<double> corr_row_1 = this->get_parameter("imu.correlation_matrix.row1").as_double_array();
+        std::vector<double> corr_row_2 = this->get_parameter("imu.correlation_matrix.row2").as_double_array();
         float imu_update_time = static_cast<float>(this->get_parameter("imu.update_time").as_double());
 
         this->get_parameter("twist.link", twist_link_);
@@ -141,7 +141,8 @@ class NavFilterNode : public LifecycleNode
       RCLCPP_INFO(this->get_logger(), "Activating Navigation Filter");
       rclcpp::Rate rate(0.5); // 0.5 Hz (2 seconds delay)
       rate.sleep();
-      
+
+      RCLCPP_INFO(this->get_logger(), "Navigation Filter Activated");
       return CallbackReturn::SUCCESS;
     }
 
@@ -161,7 +162,7 @@ class NavFilterNode : public LifecycleNode
         // Update the filter with the IMU measurement
         filter_.update_imu(imu_measurement);
         // Convert the current state to Odometry message
-        auto odom_msg = state_to_odom(filter_.get_state());
+        nav_msgs::msg::Odometry odom_msg = state_to_odom(filter_.get_state());
         publisher_->publish(odom_msg);
       }
     }
@@ -181,12 +182,9 @@ class NavFilterNode : public LifecycleNode
     {
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
       {
-        Eigen::Quaternionf q(msg.twist.angular.w, msg.twist.angular.x, msg.twist.angular.y, msg.twist.angular.z);
-        Eigen::Vector3f euler_angles = q.toRotationMatrix().eulerAngles(0, 1, 2);
-
         filter_.update_twist(Eigen::Matrix<float, 6, 1>(
           msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z,
-          euler_angles[0], euler_angles[1], euler_angles[2]));
+          msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z));
       }
     }
     // Convert State to Odometry message
@@ -251,6 +249,14 @@ class NavFilterNode : public LifecycleNode
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_stamped_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_stamped_subscription_;
+
+    sensor_msgs::msg::Imu initial_imu_;
+    geometry_msgs::msg::PoseStamped initial_pose_;
+    geometry_msgs::msg::Twist initial_twist_;
+
+    bool imu_initialized_;
+    bool pose_initialized_;
+    bool twist_initialized_;
 
     std::string base_link_;
     std::string twist_link_;

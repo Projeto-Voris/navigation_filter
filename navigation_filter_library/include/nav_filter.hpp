@@ -30,6 +30,9 @@ public:
         const Eigen::MatrixXf& jacobian_matrix, 
         const Eigen::MatrixXf& predicted_measurement, 
         const Eigen::MatrixXf& noise_jacobian_matrix);
+    void update_pose(Eigen::Matrix<float, 6,1> pose_measurement);
+    void update_twist(Eigen::Matrix<float, 6,1> twist_measurement);
+    void update_imu(Eigen::Matrix<float, 6,1> imu_measurement);
 };
 
 #endif // NAV_FILTER_HPP

@@ -40,3 +40,31 @@ void NavFilter::updateEKF(const Eigen::MatrixXf& measurement,
     this->error_state = this->error_state.get_error_vector() + K_k1 * (error_z - H_k1 * this->error_state.get_error_vector());
     this->error_state.error_covariance_ = (Eigen::Matrix<float, 18, 18>::Identity() - K_k1 * H_k1) * P_;
 }
+
+void NavFilter::update_pose(Eigen::Matrix<float, 6,1> pose_measurement)
+{
+    Eigen::Matrix<float, 6, 18> jacobian = pose.get_jacobian(error_state);
+    Eigen::Matrix<float, 6, 1> predicted_measurement = pose.get_measurement(error_state);
+    Eigen::Matrix<float, 6, 6> measurement_covariance = pose.get_covariance().cast<float>();
+    Eigen::Matrix<float, 6, 18> noise_jacobian = pose.get_noise_jacobian(error_state);
+
+    this->updateEKF(pose_measurement, measurement_covariance, jacobian, predicted_measurement, noise_jacobian);
+}
+
+void NavFilter::update_twist(Eigen::Matrix<float, 6,1> twist_measurement)
+{
+    Eigen::Matrix<float, 6, 18> jacobian = twist.get_jacobian(error_state);
+    Eigen::Matrix<float, 6, 1> predicted_measurement = twist.get_measurement(error_state);
+    Eigen::Matrix<float, 6, 6> measurement_covariance = twist.get_covariance().cast<float>();
+    Eigen::Matrix<float, 6, 18> noise_jacobian = twist.get_noise_jacobian(error_state);
+
+    this->updateEKF(twist_measurement, measurement_covariance, jacobian, predicted_measurement, noise_jacobian);
+
+}
+
+void update_imu(Eigen::Matrix<float, 6,1> imu_measurement)
+{
+    propagate_error(imu_measurement);
+    
+
+}

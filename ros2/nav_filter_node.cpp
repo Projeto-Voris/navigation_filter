@@ -150,27 +150,77 @@ class NavFilterNode : public LifecycleNode
     {
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
       {
-        RCLCPP_INFO(this->get_logger(), "IMU message received");
-        auto message = nav_msgs::msg::Odometry();
-        RCLCPP_INFO(this->get_logger(), "Publishing");
-        publisher_->publish(message);
+        // Convert IMU message to Eigen vector
+        Eigen::Matrix<float, 6, 1> imu_measurement;
+        // Convert angular velocity from quaternion to Euler angles
+        Eigen::Quaternionf q(msg.orientation.w, msg.orientation.x, msg.orientation.y, msg.orientation.z);
+        Eigen::Vector3f euler_angles = q.toRotationMatrix().eulerAngles(0, 1, 2);
+
+        imu_measurement << msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z,
+               euler_angles[0], euler_angles[1], euler_angles[2];
+        // Update the filter with the IMU measurement
+        filter_.update_imu(imu_measurement);
+        // Convert the current state to Odometry message
+        auto odom_msg = state_to_odom(filter_.get_state());
+        publisher_->publish(odom_msg);
       }
     }
     void pose_callback(const geometry_msgs::msg::PoseStamped & msg)
     {
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
       {
-        RCLCPP_INFO(this->get_logger(), "Pose message received");
+        Eigen::Quaternionf q(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
+        Eigen::Vector3f euler_angles = q.toRotationMatrix().eulerAngles(0, 1, 2);
+
+        filter_.update_pose(Eigen::Matrix<float, 6, 1>(
+          msg.pose.position.x, msg.pose.position.y, msg.pose.position.z,
+          euler_angles[0], euler_angles[1], euler_angles[2]));
       }
     }
     void twist_callback(const geometry_msgs::msg::TwistStamped & msg)
     {
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
       {
-        RCLCPP_INFO(this->get_logger(), "Twist message received");
+        Eigen::Quaternionf q(msg.twist.angular.w, msg.twist.angular.x, msg.twist.angular.y, msg.twist.angular.z);
+        Eigen::Vector3f euler_angles = q.toRotationMatrix().eulerAngles(0, 1, 2);
+
+        filter_.update_twist(Eigen::Matrix<float, 6, 1>(
+          msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z,
+          euler_angles[0], euler_angles[1], euler_angles[2]));
       }
     }
-    Eigen::Matrix4f get_matrix_from_tf(const geometry_msgs::msg::TransformStamped tf){
+    // Convert State to Odometry message
+    nav_msgs::msg::Odometry state_to_odom(State state)
+    {
+      nav_msgs::msg::Odometry odom_msg;
+      odom_msg.header.stamp = this->now();
+      odom_msg.header.frame_id = base_link_;
+      odom_msg.child_frame_id = imu_link_;
+
+      odom_msg.pose.pose.position.x = state.position_[0];
+      odom_msg.pose.pose.position.y = state.position_[1];
+      odom_msg.pose.pose.position.z = state.position_[2];
+
+      odom_msg.twist.twist.linear.x = state.velocity_[0];
+      odom_msg.twist.twist.linear.y = state.velocity_[1];
+      odom_msg.twist.twist.linear.z = state.velocity_[2];
+
+      // Convert orientation from Euler angles to quaternion
+      Eigen::Quaternionf q;
+      q = Eigen::AngleAxisf(state.orientation_[0], Eigen::Vector3f::UnitX())
+        * Eigen::AngleAxisf(state.orientation_[1], Eigen::Vector3f::UnitY())
+        * Eigen::AngleAxisf(state.orientation_[2], Eigen::Vector3f::UnitZ());
+      
+      odom_msg.pose.pose.orientation.x = q.x();
+      odom_msg.pose.pose.orientation.y = q.y();
+      odom_msg.pose.pose.orientation.z = q.z();
+      odom_msg.pose.pose.orientation.w = q.w();
+
+      return odom_msg;
+    }
+
+    Eigen::Matrix4f get_matrix_from_tf(const geometry_msgs::msg::TransformStamped tf)
+    {
       Eigen::Matrix4f transform;
       transform(0, 3) = tf.transform.translation.x;
       transform(1, 3) = tf.transform.translation.y;

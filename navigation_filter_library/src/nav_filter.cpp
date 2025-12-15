@@ -8,11 +8,15 @@
 
 NavFilter::NavFilter(const IMUModel& imu_model, const TwistModel& twist_model, const PoseModel& pose_model) :imu(imu_model), twist(twist_model), pose(pose_model)
 {
+
 }
 NavFilter::NavFilter()
-{}
+{
+
+}
 NavFilter::~NavFilter()
 {
+    
 }
 
 void NavFilter::propagate_error(Eigen::Matrix<float, 6,1> imu_measurement)

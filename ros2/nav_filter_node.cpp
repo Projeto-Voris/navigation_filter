@@ -24,8 +24,14 @@ using namespace std::chrono_literals;
 using rclcpp_lifecycle::LifecycleNode;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
+
+
+
 /* This example creates a subclass of Node and uses std::bind() to register a
 * member function as a callback from the timer. */
+
+
+
 
 class NavFilterNode : public LifecycleNode
 {
@@ -35,8 +41,9 @@ class NavFilterNode : public LifecycleNode
       tf_buffer_(this->get_clock()),
       tf_listener_(tf_buffer_)
     {
+      /* Declare sensors parameters and create subscriptions */
+      
       this->declare_parameter<std::string>("base_link", "base_link");
-
       this->declare_parameter<std::string>("imu.link",  "base_link");
       this->declare_parameter<std::vector<double>>("imu.accelerometer_random_walk_bias", {0,0,0});
       this->declare_parameter<std::vector<double>>("imu.gyroscope_random_walk_bias", {0,0,0});
@@ -57,7 +64,11 @@ class NavFilterNode : public LifecycleNode
       this->declare_parameter<std::vector<float>>("pose.noise", {0,0,0});
       this->declare_parameter<float>("pose.update_time",  0.01);
 
+      /* Publish a Odometry msg */
+
       publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
+      
+      /* Receives a imu, pose and twist stamped */
 
       imu_subscription_ = this->create_subscription<sensor_msgs::msg::Imu>(
       "/imu", 10, std::bind(&NavFilterNode::imu_callback, this, std::placeholders::_1));
@@ -68,6 +79,13 @@ class NavFilterNode : public LifecycleNode
       twist_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
       "/twist", 10, std::bind(&NavFilterNode::twist_callback, this, std::placeholders::_1));
     }
+
+
+    /* Here we have the core callbacks that configure and activate the node.
+    * those are essencial parts in the ros2 lifecycle node structure */
+
+
+
   protected:
     CallbackReturn on_configure(const rclcpp_lifecycle::State &)
     { 
@@ -75,6 +93,9 @@ class NavFilterNode : public LifecycleNode
       try
       {
         rclcpp::Time now = this->get_clock()->now();
+        
+
+      /* On configure --> declare parameters, get transforms and initialize  filter */
 
         this->get_parameter("base_link", base_link_);
 
@@ -136,6 +157,10 @@ class NavFilterNode : public LifecycleNode
       return CallbackReturn::SUCCESS;
     }
 
+
+    /* Callback that activates the node */
+
+
     CallbackReturn on_activate(const rclcpp_lifecycle::State &)
     {
       RCLCPP_INFO(this->get_logger(), "Activating Navigation Filter");
@@ -146,7 +171,17 @@ class NavFilterNode : public LifecycleNode
       return CallbackReturn::SUCCESS;
     }
 
+
+
+    /* Callbacks that recive data from sensors and update the filter
+    * We have acess because we declare this callbacks in the "subscribers"
+    * this means that everytime this node recives information, it will
+    * be stored in this callbacks                                      */
+
+
+
   private:
+
     void imu_callback(const sensor_msgs::msg::Imu & msg)
     {
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
@@ -166,6 +201,9 @@ class NavFilterNode : public LifecycleNode
         publisher_->publish(odom_msg);
       }
     }
+
+
+
     void pose_callback(const geometry_msgs::msg::PoseStamped & msg)
     {
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
@@ -178,6 +216,9 @@ class NavFilterNode : public LifecycleNode
           euler_angles[0], euler_angles[1], euler_angles[2]));
       }
     }
+
+
+
     void twist_callback(const geometry_msgs::msg::TwistStamped & msg)
     {
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)

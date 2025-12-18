@@ -22,6 +22,9 @@ NavFilter::~NavFilter()
     
 }
 
+// Basicamente propaga os erros passados para os erros futuros, usando as matrizes jacobianas.
+// Por exemplo, se você tem um erro de velocidade, esse erro multiplicado pelo tempo se torna um erro de posição;
+
 void NavFilter::propagate_error(Eigen::Matrix<float, 6,1> imu_measurement)
 {
     Eigen::Matrix<float, 18, 18> A_k = this->imu.get_jacobian(error_state, imu_measurement);
@@ -29,24 +32,46 @@ void NavFilter::propagate_error(Eigen::Matrix<float, 6,1> imu_measurement)
     Eigen::Matrix<float, 18, 18> B_k = this->imu.get_noise_jacobian(error_state);
     this->error_state.error_covariance_ = A_k*this->error_state.error_covariance_*A_k.transpose() + B_k*this->imu.covariance_*B_k.transpose();
 }
+
 void NavFilter::updateEKF(const Eigen::MatrixXf& measurement, 
                           const Eigen::MatrixXf& measurement_covariance, 
                           const Eigen::MatrixXf& jacobian_matrix, 
                           const Eigen::MatrixXf& predicted_measurement, 
                           const Eigen::MatrixXf& noise_jacobian_matrix)
 {
+
+    // P_ --> Covariancia do estado de erro, mede o quão incerto o filtro está antes de receber a próxima medição;
     Eigen::Matrix<float, 18, 18> P_ = this->error_state.error_covariance_;
+
+    // H_k1 --> Jacobiana da medição; 
     Eigen::MatrixXf H_k1 = jacobian_matrix;
+
+    // S_k1 e M_k1 --> Incertezas do sensor; 
     Eigen::MatrixXf S_k1 = measurement_covariance;
     Eigen::MatrixXf M_k1 = noise_jacobian_matrix;
 
+    // Cálculo do ganho de Kalman K_k1, que determina o quanto o filtro deve confiar na nova medição em relação ao estado predito;
+    // Se a incerteza do sistema (P) for muito alta e o ruído do sensor (S) for baixo, K será alto (o filtro confiará mais no sensor);
+    // Se o sensor for ruidoso (S é grande), K será pequeno (o filtro ignorará parte da medição e confiará mais na sua própria inércia);
     Eigen::MatrixXf K_k1 = P_ * H_k1.transpose() * 
                                        (H_k1 * P_ * H_k1.transpose() + M_k1 * S_k1 * M_k1.transpose()).inverse();
+
+    // Erro entre o que foi lido e o que ele esperava ler;
     Eigen::MatrixXf error_z = measurement - predicted_measurement;
 
+    // Atualização do estado de erro e sua covariancia com base na medição recebida;
     this->error_state = this->error_state.get_error_vector() + K_k1 * (error_z - H_k1 * this->error_state.get_error_vector());
     this->error_state.error_covariance_ = (Eigen::Matrix<float, 18, 18>::Identity() - K_k1 * H_k1) * P_;
 }
+
+// Declarando as matrizes necessárias para o EKF, a base dessa função é relacionar o estado medido com o estado predito,
+// usando as matrizes jacobianas e de covariancia para calcular o ganho de Kalman e atualizar o estado de erro e sua covariancia. 
+
+    // Jacobian -->   matriz que relaciona pequenas mudanças no estado de erro com mudanças na medição prevista.
+    // Predicted Measurement -->   é o que o modelo de movimento espera medir, dado o estado atual do sistema.
+    // Measurement Covariance -->   representa a incerteza associada às medições do sensor.
+    // Noise Jacobian -->   matriz que relaciona o ruído do sensor com o estado de erro.
+
 
 void NavFilter::update_pose(Eigen::Matrix<float, 6,1> pose_measurement)
 {
@@ -62,7 +87,7 @@ void NavFilter::update_pose(Eigen::Matrix<float, 6,1> pose_measurement)
 // Essa função atualiza o filtro com as medições de velocidade linear e angular, vindas do DVL. No Sensor Fusion é o DLVupdate que faz isso.
 
 void NavFilter::update_twist(Eigen::Matrix<float, 6,1> twist_measurement)
-{
+{ 
     Eigen::Matrix<float, 6, 18> jacobian = twist.get_jacobian(error_state);
     Eigen::Matrix<float, 6, 1> predicted_measurement = twist.get_measurement(error_state);
     Eigen::Matrix<float, 6, 6> measurement_covariance = twist.get_covariance().cast<float>();

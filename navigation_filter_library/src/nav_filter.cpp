@@ -5,15 +5,18 @@
 #include "twist_model.cpp"
 #include "pose_model.cpp"
 
+// Class responsible for the navigation filter operations 
 
 NavFilter::NavFilter(const IMUModel& imu_model, const TwistModel& twist_model, const PoseModel& pose_model) :imu(imu_model), twist(twist_model), pose(pose_model)
 {
 
 }
+
 NavFilter::NavFilter()
 {
 
 }
+
 NavFilter::~NavFilter()
 {
     
@@ -56,6 +59,8 @@ void NavFilter::update_pose(Eigen::Matrix<float, 6,1> pose_measurement)
     state.position_ = state.position_ + error_state.error_position_;
 }
 
+// Essa função atualiza o filtro com as medições de velocidade linear e angular, vindas do DVL. No Sensor Fusion é o DLVupdate que faz isso.
+
 void NavFilter::update_twist(Eigen::Matrix<float, 6,1> twist_measurement)
 {
     Eigen::Matrix<float, 6, 18> jacobian = twist.get_jacobian(error_state);
@@ -67,17 +72,30 @@ void NavFilter::update_twist(Eigen::Matrix<float, 6,1> twist_measurement)
 
     state.velocity_ = state.velocity_ + error_state.error_velocity_;
 }
+
+// Update the filter with IMU measurements
+// Função de mechanization serve para integrar as leituras do IMU e atualizar o estado nominal do seu ROV
+// A função de propagate_error calcula a matriz de covariancia do estado de erro com base nas medições do IMU
+
 void NavFilter::update_imu(Eigen::Matrix<float, 6,1> imu_measurement)
 {
     mechanization(imu_measurement);
     propagate_error(imu_measurement);
 }
 
+// Mechanization function to update the nominal state based on IMU measurements
+
 void NavFilter::mechanization(Eigen::Matrix<float, 6,1> imu_measurement)
 {
+
+    // Pega os dados referentes ao acelerometro, rotaciona para o sistema de referencia NED e adiciona a gravidade: 
     Eigen::Matrix<float, 3, 1> velocity_dot = this->C_n_b * imu_measurement.head<3>() + this->gravity;
 
+    // Tratamento do giroscopio com metodo de Runge-Kutta de ordem 4 (?)
+    // alfa_delta é a variação angular simples;
     Eigen::Matrix<float, 3, 1> alfa_delta = (imu_measurement.tail<3>() + this->last_gyro) / 2 * this->imu.update_time_;
+
+    // beta_delta é o cálculo de compensação de coning (rotação) --> Produto vetorial (cross) para corrigir erros;
     Eigen::Matrix<float, 3, 1> beta_delta = 0.5 * (this->alfa + 1.0 / 6.0 * this->last_alfa_delta).cross(alfa_delta);
 
     this->alfa += alfa_delta;
@@ -87,6 +105,9 @@ void NavFilter::mechanization(Eigen::Matrix<float, 6,1> imu_measurement)
     this->last_alfa = this->alfa;
     this->last_beta = this->beta;
     this->last_alfa_delta = alfa_delta;
+
+    // Atualiza o estado nominal com as novas leituras do IMU, usando física básica de movimento
+    // ou seja, integrando aceleração para obter velocidade e integrando velocidade para obter posição
 
     this->state.position_ += this->state.velocity_ * this->imu.update_time_;
     this->state.velocity_ += velocity_dot * this->imu.update_time_;

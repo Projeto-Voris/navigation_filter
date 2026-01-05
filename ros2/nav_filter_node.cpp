@@ -24,13 +24,8 @@ using namespace std::chrono_literals;
 using rclcpp_lifecycle::LifecycleNode;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-
-
-
 /* This example creates a subclass of Node and uses std::bind() to register a
 * member function as a callback from the timer. */
-
-
 
 
 class NavFilterNode : public LifecycleNode

@@ -66,10 +66,10 @@ class NavFilterNode : public LifecycleNode
       /* Receives a imu, pose and twist stamped */
 
       imu_subscription_ = this->create_subscription<sensor_msgs::msg::Imu>(
-      "/mavros/imu/data", 10, std::bind(&NavFilterNode::imu_callback, this, std::placeholders::_1));
+      "/mavros/imu/data_raw", 10, std::bind(&NavFilterNode::imu_callback, this, std::placeholders::_1));
 
       pose_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-      "/pose_stamped", 10, std::bind(&NavFilterNode::pose_callback, this, std::placeholders::_1));
+      "/pose", 10, std::bind(&NavFilterNode::pose_callback, this, std::placeholders::_1));
 
       twist_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
       "/twist", 10, std::bind(&NavFilterNode::twist_callback, this, std::placeholders::_1));

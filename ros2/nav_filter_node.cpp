@@ -183,14 +183,16 @@ class NavFilterNode : public LifecycleNode
       {
         // Convert IMU message to Eigen vector
         Eigen::Matrix<float, 6, 1> imu_measurement;
+
         // Convert angular velocity from quaternion to Euler angles
         Eigen::Quaternionf q(msg.orientation.w, msg.orientation.x, msg.orientation.y, msg.orientation.z);
         Eigen::Vector3f euler_angles = q.toRotationMatrix().eulerAngles(0, 1, 2);
-
         imu_measurement << msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z,
                euler_angles[0], euler_angles[1], euler_angles[2];
+
         // Update the filter with the IMU measurement
         filter_.update_imu(imu_measurement);
+
         // Convert the current state to Odometry message
         nav_msgs::msg::Odometry odom_msg = state_to_odom(filter_.get_state());
         publisher_->publish(odom_msg);
@@ -211,7 +213,6 @@ class NavFilterNode : public LifecycleNode
           euler_angles[0], euler_angles[1], euler_angles[2]));
       }
     }
-
 
 
     void twist_callback(const geometry_msgs::msg::TwistStamped & msg)

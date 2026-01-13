@@ -30,8 +30,13 @@ The `Odom` Callback processes orientation and acceleration data typically provid
 ### Imu
 The `IMU` measures specific force and angular rate using a combination of accelerometers and gyroscopes. It provides high-frequency updates on the vehicle's attitude (roll, pitch, and yaw), serving as a backbone for the filter's prediction step.
 
-# Commands and Compilation
+## Publisher
 Combined with the other packages (ORBSLAM and the DVL), this algoritm provides a Odometry msgs.
+| Module           | Direction | Topic                     | Message Type                  | Notes |
+|------------------|-----------|---------------------------|-------------------------------|-------|
+| Odom             | Pub       | `/odom`                   | `nav_msgs/Odometry`           | Final Output |
+
+# Commands and Compilation
 To build and run the navigation filter within your workspace, use the following commands:
 ### 1. Build the Workspace
 Using `colcon` (ROS 2) to compile the specific navigation package:
@@ -50,3 +55,4 @@ You must source the workspace in every new terminal to allow ROS to find your no
 ```bash
     ros2 launch navigation_filter nav_filter_test.launch.py
    ```
+

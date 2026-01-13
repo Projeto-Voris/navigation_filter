@@ -6,30 +6,45 @@ Within this package node, we utilize callbacks for Pose, Twist, and Odometry:
 ## Pose Callback
 The Pose Callback processes and stores all spatial data received from the ORB-SLAM algorithm.
 ### Message Type
-
+---
+| Module           | Direction | Topic                     | Message Type                 | Notes |
+|------------------|-----------|---------------------------|-------------------------------|-------|
+| Pose             | Sub       | `/pose`                   | `geometry_msgs/PoseStamped`     | Provides absolute position (x,y,z) and orientation (quaternions) to correct long-term drift. |
+---
 ### ORBSLAM
 ORB-SLAM is a versatile and accurate SLAM (Simultaneous Localization and Mapping) solution. In this context, it provides the vehicle's estimated position and orientation relative to a mapped environment using visual features.
 
 ## Twist Callback
 The `Twist` Callback handles velocity data received from the DVL (Doppler Velocity Log).
 ### Message Type
-
+---
+| Module           | Direction | Topic                     | Message Type                 | Notes |
+|------------------|-----------|---------------------------|-------------------------------|-------|
+| Twist            | Sub       | `/twist`                  | `geometry_msgs/TwistStamped`     | Provides linear velocity data relative to the sea floor, which is critical for maintaining stability when visual features are lost. |
+---
 ### DVL
 
 ## Odom Callback
 The `Odom` Callback processes orientation and acceleration data typically provided by the IMU (Inertial Measurement Unit).
 ### Message Type
-
+---
+| Module           | Direction | Topic                     | Message Type                  | Notes |
+|------------------|-----------|---------------------------|-------------------------------|-------|
+| Odom             | Sub       | `/mavros/imu/data_raw`    | `sensor_msgs/Imu`            | Supplies angular velocity and linear acceleration, allowing the filter to "predict" movement between SLAM and DVL updates. |
+---
 ### Imu
 The `IMU` measures specific force and angular rate using a combination of accelerometers and gyroscopes. It provides high-frequency updates on the vehicle's attitude (roll, pitch, and yaw), serving as a backbone for the filter's prediction step.
 
 # Commands and Compilation
+Combined with the other packages (ORBSLAM and the DVL), this algoritm provides a Odometry msgs.
 To build and run the navigation filter within your workspace, use the following commands:
 ### 1. Build the Workspace
+Using `colcon` (ROS 2) to compile the specific navigation package:
 ```bash
     colcon build --packages-select <package_name> 
    ```
 ### 2. Source the Environment
+You must source the workspace in every new terminal to allow ROS to find your nodes:
 ```bash
     source install/setup.bash
    ```

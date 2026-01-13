@@ -75,10 +75,8 @@ class NavFilterNode : public LifecycleNode
       "/twist", 10, std::bind(&NavFilterNode::twist_callback, this, std::placeholders::_1));
     }
 
-
     /* Here we have the core callbacks that configure and activate the node.
     * those are essencial parts in the ros2 lifecycle node structure */
-
 
 
   protected:
@@ -221,9 +219,11 @@ class NavFilterNode : public LifecycleNode
       {
         filter_.update_twist(Eigen::Matrix<float, 6, 1>(
           msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z,
-          msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z));
+          msg.twist.angular.x, msg.twist.angular.y, msg.twist.angular.z));
       }
     }
+
+
     // Convert State to Odometry message
     nav_msgs::msg::Odometry state_to_odom(State state)
     {

@@ -13,9 +13,9 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
-
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
+#include "dvl_msgs/msg/dvl.hpp" 
 
 #include "nav_filter.hpp"
 #include "imu_model.hpp"
@@ -71,13 +71,12 @@ class NavFilterNode : public LifecycleNode
       pose_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
       "/pose", 10, std::bind(&NavFilterNode::pose_callback, this, std::placeholders::_1));
 
-      twist_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
+      twist_stamped_subscription_ = this->create_subscription<dvl_msgs::msg::DVL>(
       "/twist", 10, std::bind(&NavFilterNode::twist_callback, this, std::placeholders::_1));
     }
 
     /* Here we have the core callbacks that configure and activate the node.
     * those are essencial parts in the ros2 lifecycle node structure */
-
 
   protected:
     CallbackReturn on_configure(const rclcpp_lifecycle::State &)
@@ -153,7 +152,6 @@ class NavFilterNode : public LifecycleNode
 
     /* Callback that activates the node */
 
-
     CallbackReturn on_activate(const rclcpp_lifecycle::State &)
     {
       RCLCPP_INFO(this->get_logger(), "Activating Navigation Filter");
@@ -165,12 +163,10 @@ class NavFilterNode : public LifecycleNode
     }
 
 
-
     /* Callbacks that recive data from sensors and update the filter
     * We have acess because we declare this callbacks in the "subscribers"
     * this means that everytime this node recives information, it will
     * be stored in this callbacks                                      */
-
 
 
   private:
@@ -197,8 +193,6 @@ class NavFilterNode : public LifecycleNode
       }
     }
 
-
-
     void pose_callback(const geometry_msgs::msg::PoseStamped & msg)
     {
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
@@ -213,13 +207,13 @@ class NavFilterNode : public LifecycleNode
     }
 
 
-    void twist_callback(const geometry_msgs::msg::TwistStamped & msg)
+    void twist_callback(const dvl_msgs::msg::DVL & msg)
     {
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
       {
         filter_.update_twist(Eigen::Matrix<float, 6, 1>(
-          msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z,
-          msg.twist.angular.x, msg.twist.angular.y, msg.twist.angular.z));
+          msg.velocity.x, msg.velocity.y, msg.velocity.z,
+          0, 0, 0));
       }
     }
 

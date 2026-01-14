@@ -6,7 +6,6 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
-
 #include "std_msgs/msg/string.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/imu.hpp"
@@ -15,8 +14,7 @@
 #include "lifecycle_msgs/msg/state.hpp"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
-#include "dvl_msgs/msg/dvl.hpp" 
-
+#include "dvl_msgs/msg/dvl.hpp"
 #include "nav_filter.hpp"
 #include "imu_model.hpp"
 
@@ -61,18 +59,20 @@ class NavFilterNode : public LifecycleNode
 
       /* Publish a Odometry msg */
 
-      publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
+      publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("/nav_filter/odom", 10);
       
       /* Receives a imu, pose and twist stamped */
 
+      // IMU IMU.msgs Input
       imu_subscription_ = this->create_subscription<sensor_msgs::msg::Imu>(
       "/mavros/imu/data_raw", 10, std::bind(&NavFilterNode::imu_callback, this, std::placeholders::_1));
-
+      // SLAM PoseStamped Input          
       pose_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
       "/pose", 10, std::bind(&NavFilterNode::pose_callback, this, std::placeholders::_1));
-
+      // DVL DVL.msgs Input
       twist_stamped_subscription_ = this->create_subscription<dvl_msgs::msg::DVL>(
-      "/twist", 10, std::bind(&NavFilterNode::twist_callback, this, std::placeholders::_1));
+      "/dvl", 10, std::bind(&NavFilterNode::dvl_callback, this, std::placeholders::_1));
+    
     }
 
     /* Here we have the core callbacks that configure and activate the node.
@@ -127,7 +127,7 @@ class NavFilterNode : public LifecycleNode
                       corr_row_1[0], corr_row_1[1], corr_row_1[2],
                       corr_row_2[0], corr_row_2[1], corr_row_2[2];
 
-        IMUModel imu_model(imu_transform_matrix,acc_bias, gyro_bias, acc_noise, gyro_noise, corr_noise, corr_matrix,float(imu_update_time));
+        IMUModel imu_model(imu_transform_matrix,acc_bias, gyro_bias, acc_noise, gyro_noise, corr_noise, corr_matrix, float(imu_update_time));
         TwistModel twist_model(twist_transform_matrix, twist_noise, float(twist_update_time));
         PoseModel pose_model(pose_transform_matrix, pose_noise, float(pose_update_time));
 
@@ -171,8 +171,13 @@ class NavFilterNode : public LifecycleNode
 
   private:
 
+    // Declarar a msg de IMU mais recente, para compor o update_twist dentro do dvl_callback: 
+    sensor_msgs::msg::Imu latest_imu_msg_;
+
     void imu_callback(const sensor_msgs::msg::Imu & msg)
     {
+      latest_imu_msg_ = msg;
+
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
       {
         // Convert IMU message to Eigen vector
@@ -207,18 +212,18 @@ class NavFilterNode : public LifecycleNode
     }
 
 
-    void twist_callback(const dvl_msgs::msg::DVL & msg)
+    void dvl_callback(const dvl_msgs::msg::DVL & msg)
     {
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
       {
+        // Update the filter with the DVL linear velocity and IMU angular velocity measurements
         filter_.update_twist(Eigen::Matrix<float, 6, 1>(
           msg.velocity.x, msg.velocity.y, msg.velocity.z,
-          0, 0, 0));
+          latest_imu_msg_.angular_velocity.x, latest_imu_msg_.angular_velocity.y, latest_imu_msg_.angular_velocity.z));
       }
     }
 
-
-    // Convert State to Odometry message
+    // Convert State to Odometry message --> basicamente compor a mensagem de odometria a partir do estado estimado pela IMU, mas não uma msgs de Odom completa, só meio preenchida
     nav_msgs::msg::Odometry state_to_odom(State state)
     {
       nav_msgs::msg::Odometry odom_msg;
@@ -226,6 +231,7 @@ class NavFilterNode : public LifecycleNode
       odom_msg.header.frame_id = base_link_;
       odom_msg.child_frame_id = imu_link_;
 
+      // Fill position and velocity
       odom_msg.pose.pose.position.x = state.position_[0];
       odom_msg.pose.pose.position.y = state.position_[1];
       odom_msg.pose.pose.position.z = state.position_[2];
@@ -279,11 +285,11 @@ class NavFilterNode : public LifecycleNode
 
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_stamped_subscription_;
-    rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_stamped_subscription_;
+    rclcpp::Subscription<dvl_msgs::msg::DVL>::SharedPtr twist_stamped_subscription_;
 
     sensor_msgs::msg::Imu initial_imu_;
     geometry_msgs::msg::PoseStamped initial_pose_;
-    geometry_msgs::msg::Twist initial_twist_;
+    dvl_msgs::msg::DVL initial_twist_;
 
     bool imu_initialized_;
     bool pose_initialized_;

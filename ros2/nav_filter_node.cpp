@@ -63,13 +63,13 @@ class NavFilterNode : public LifecycleNode
       
       /* Receives a imu, pose and twist stamped */
 
-      // IMU IMU.msgs Input
+      // IMU IMU.msgs Input ---> angular orientations, velocities and linear accelerations
       imu_subscription_ = this->create_subscription<sensor_msgs::msg::Imu>(
       "/mavros/imu/data_raw", 10, std::bind(&NavFilterNode::imu_callback, this, std::placeholders::_1));
-      // SLAM PoseStamped Input          
+      // SLAM PoseStamped Input ---> position and orientation       
       pose_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
       "/pose", 10, std::bind(&NavFilterNode::pose_callback, this, std::placeholders::_1));
-      // DVL DVL.msgs Input
+      // DVL DVL.msgs Input ---> linear velocities
       twist_stamped_subscription_ = this->create_subscription<dvl_msgs::msg::DVL>(
       "/dvl", 10, std::bind(&NavFilterNode::dvl_callback, this, std::placeholders::_1));
     
@@ -214,6 +214,8 @@ class NavFilterNode : public LifecycleNode
     }
 
 
+    // Dentro do dvl callback na real as únicas informações que realmente vao ser usadas são as velocidades lineares
+    // No twist model, as velocidades angulares são todas zeradas
     void dvl_callback(const dvl_msgs::msg::DVL & msg)
     {
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
@@ -221,7 +223,7 @@ class NavFilterNode : public LifecycleNode
         // Update the filter with the DVL linear velocity and IMU angular velocity measurements
         filter_.update_twist(Eigen::Matrix<float, 6, 1>(
           msg.velocity.x, msg.velocity.y, msg.velocity.z,
-          latest_imu_msg_.angular_velocity.x, latest_imu_msg_.angular_velocity.y, latest_imu_msg_.angular_velocity.z));
+          0, 0, 0));
       }
     }
 

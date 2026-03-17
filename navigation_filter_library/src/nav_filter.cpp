@@ -27,6 +27,7 @@ NavFilter::~NavFilter()
 
 void NavFilter::propagate_error(Eigen::Matrix<float, 6,1> imu_measurement)
 {
+    // Função get_jacobian serve para linearizar seu sistema 
     Eigen::Matrix<float, 18, 18> A_k = this->imu.get_jacobian(error_state, imu_measurement);
     this->error_state = A_k * this->error_state.get_error_vector();
     Eigen::Matrix<float, 18, 18> B_k = this->imu.get_noise_jacobian(error_state);

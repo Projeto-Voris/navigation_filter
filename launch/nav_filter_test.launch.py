@@ -25,7 +25,7 @@ def generate_launch_description():
         output='screen',
         parameters=[LaunchConfiguration('config')],
         remappings=[
-            ('/pose', '/VORIS/pose'),           # Conecta no Pose do SLAM
+            ('/pose', '/mavros/local_position/pose'),           # Conecta no Pose do SLAM
             ('/imu', '/mavros/imu/data_raw'),   # Conecta na IMU do MAVROS
             ('/dvl', '/mavros/local_position/velocity_body'),   # Conecta na IMU do MAVROS
         ]

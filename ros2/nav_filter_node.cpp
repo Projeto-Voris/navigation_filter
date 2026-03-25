@@ -68,7 +68,7 @@ class NavFilterNode : public LifecycleNode
       "/mavros/imu/data_raw", 10, std::bind(&NavFilterNode::imu_callback, this, std::placeholders::_1));
       // SLAM PoseStamped Input ---> position and orientation       
       pose_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-      "/pose", 10, std::bind(&NavFilterNode::pose_callback, this, std::placeholders::_1));
+      "/mavros/local_position/pose", 10, std::bind(&NavFilterNode::pose_callback, this, std::placeholders::_1));
       // DVL DVL.msgs Input ---> linear velocities
       twist_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
       "/mavros/local_position/velocity_body", 10, std::bind(&NavFilterNode::dvl_callback, this, std::placeholders::_1));
@@ -193,6 +193,7 @@ class NavFilterNode : public LifecycleNode
 
         // Update the filter with the IMU measurement
         filter_.update_imu(imu_measurement);
+        RCLCPP_INFO(get_logger(), "Imu publishing");
 
         // Convert the current state to Odometry message --> deve pegar os dados que consegue com IMU e realocar eles em formato de Odom.msg
         nav_msgs::msg::Odometry odom_msg = state_to_odom(filter_.get_state());
@@ -206,6 +207,7 @@ class NavFilterNode : public LifecycleNode
       {
         Eigen::Quaternionf q(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
         Eigen::Vector3f euler_angles = q.toRotationMatrix().eulerAngles(0, 1, 2);
+        RCLCPP_INFO(get_logger(), "Pose publishing");
 
         filter_.update_pose(Eigen::Matrix<float, 6, 1>(
           msg.pose.position.x, msg.pose.position.y, msg.pose.position.z,
@@ -219,6 +221,7 @@ class NavFilterNode : public LifecycleNode
     void dvl_callback(const geometry_msgs::msg::TwistStamped & msg)
     {
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+      RCLCPP_INFO(get_logger(), "DVL publishing");
       {
         // Update the filter with the DVL linear velocity and IMU angular velocity measurements
         filter_.update_twist(Eigen::Matrix<float, 6, 1>(

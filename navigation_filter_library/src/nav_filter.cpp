@@ -75,7 +75,7 @@ void NavFilter::updateEKF(const Eigen::MatrixXf& measurement,
 
 
 void NavFilter::update_pose(Eigen::Matrix<float, 6,1> pose_measurement)
-{
+{   
     Eigen::Matrix<float, 6, 18> jacobian = pose.get_jacobian(error_state);
     Eigen::Matrix<float, 6, 1> predicted_measurement = pose.get_measurement(error_state);
     Eigen::Matrix<float, 6, 6> measurement_covariance = pose.get_covariance().cast<float>();
@@ -98,6 +98,7 @@ void NavFilter::update_twist(Eigen::Matrix<float, 6,1> twist_measurement)
 
     state.velocity_ = state.velocity_ + error_state.error_velocity_;
 }
+
 
 // Update the filter with IMU measurements
 // Função de mechanization serve para integrar as leituras do IMU e atualizar o estado nominal do seu ROV

@@ -10,6 +10,7 @@ Eigen::MatrixXf TwistModel::get_colored_jacobian(ErrorState e_state, State state
     float bv2 = e_state.bv_(1);
     float bv3 = e_state.bv_(2);
 
+    // Só leva em ccnsideração as velocidades nominais do estado, angulares são desconsideradas;
     float v_nom1 = state.velocity_(0);
     float v_nom2 = state.velocity_(1);
     float v_nom3 = state.velocity_(2);

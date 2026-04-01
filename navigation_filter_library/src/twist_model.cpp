@@ -43,8 +43,13 @@ Eigen::MatrixXf TwistModel::get_colored_jacobian(ErrorState e_state, State state
     jacobian(2, 16) = -lambda3;
     jacobian(2, 17) = 1;
 
+    /*  jacobian = [[0, 0, 0, -1,  0,  0,          bv2, bv3 - v_nom1,      -v_nom2, 0, 0, 0, 0, 0, 0,        1,  lambda1, lambda2]
+                   [0, 0, 0,  0, -1,  0, v_nom1 - bv1,            0, bv3 - v_nom3, 0, 0, 0, 0, 0, 0, -lambda1,        1, lambda3]
+                   [0, 0, 0,  0,  0, -1,       v_nom2, v_nom3 - bv1,         -bv2, 0, 0, 0, 0, 0, 0, -lambda2, -lambda3,       1]];      */
+
     return jacobian;
 }
+
 Eigen::MatrixXf TwistModel::get_noise_jacobian(ErrorState e_state)
 {
     float lambda1 = e_state.error_orientation_(0);

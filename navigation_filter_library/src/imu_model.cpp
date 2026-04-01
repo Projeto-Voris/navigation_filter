@@ -132,6 +132,7 @@ Eigen::MatrixXf IMUModel::get_jacobian(ErrorState state, Eigen::VectorXf control
 
     return jacobian;
 }
+
 Eigen::MatrixXf IMUModel::get_noise_jacobian(ErrorState state)
 {
     float dt = update_time_;
@@ -141,41 +142,50 @@ Eigen::MatrixXf IMUModel::get_noise_jacobian(ErrorState state)
 
     Eigen::Matrix<float, 18, 18> jacobian = Eigen::Matrix<float, 18, 18>::Zero();
 
-    // Diagonal principal
-    for (int i = 0; i < 3; ++i) {
-        jacobian(i, i) = dt + 1;
-    }
-    for (int i = 3; i <= 5; ++i) {
-        jacobian(i, i) = dt + 1;
-    }
-    for (int i = 6; i <= 8; ++i) {
-        jacobian(i, i) = dt + 1;
-    }
-    for (int i = 9; i <= 14; ++i) {
-        jacobian(i, i) = 1 - dt;
-    }
-    for (int i = 15; i <= 17; ++i) {
-        jacobian(i, i) = dt + 1;
-    }
+    // --- Bloco 1: Posição (0,0 a 2,2) ---
+    jacobian(0, 0) = dt + 1;
+    jacobian(1, 1) = dt + 1;
+    jacobian(2, 2) = dt + 1;
 
-    // Linhas específicas
+    // --- Bloco 2: Velocidade + Skew-Symmetric (3,3 a 5,5) ---
+    jacobian(3, 3) = dt + 1;
     jacobian(3, 4) = dt * lambda1;
     jacobian(3, 5) = dt * lambda2;
 
     jacobian(4, 3) = -dt * lambda1;
+    jacobian(4, 4) = dt + 1;
     jacobian(4, 5) = dt * lambda3;
 
     jacobian(5, 3) = -dt * lambda2;
     jacobian(5, 4) = -dt * lambda3;
+    jacobian(5, 5) = dt + 1;
 
+    // --- Bloco 3: Orientação + Skew-Symmetric (6,6 a 8,8) ---
+    jacobian(6, 6) = dt + 1;
     jacobian(6, 7) = dt * lambda1;
     jacobian(6, 8) = dt * lambda2;
 
     jacobian(7, 6) = -dt * lambda1;
+    jacobian(7, 7) = dt + 1;
     jacobian(7, 8) = dt * lambda3;
 
     jacobian(8, 6) = -dt * lambda2;
     jacobian(8, 7) = -dt * lambda3;
+    jacobian(8, 8) = dt + 1;
+
+    // --- Bloco 4: Biases / Decaimento (9,9 a 14,14) ---
+    jacobian(9, 9)   = 1 - dt;
+    jacobian(10, 10) = 1 - dt;
+    jacobian(11, 11) = 1 - dt;
+    jacobian(12, 12) = 1 - dt;
+    jacobian(13, 13) = 1 - dt;
+    jacobian(14, 14) = 1 - dt;
+
+    // --- Bloco 5: Estados Finais (15,15 a 17,17) ---
+    jacobian(15, 15) = dt + 1;
+    jacobian(16, 16) = dt + 1;
+    jacobian(17, 17) = dt + 1;
 
     return jacobian;
 }
+

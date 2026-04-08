@@ -7,7 +7,7 @@ ProccessModel::ProccessModel(const ProccessModel& other)
       transform_(other.transform_),
       covariance_(other.covariance_)
 {}
-ProccessModel::ProccessModel(Eigen::Matrix4f transform, std::vector<double> noise, float dt):transform_(transform), update_time_(dt)
+ProccessModel::ProccessModel(Eigen::Matrix4f transform, std::vector<double> noise, float dt):update_time_(dt), transform_(transform)
 {
     std::vector<float> noise_float(noise.begin(), noise.end());
     covariance_ = Eigen::Map<Eigen::VectorXf>(noise_float.data(), noise.size()).asDiagonal();
@@ -31,11 +31,11 @@ Eigen::MatrixXf ProccessModel::get_covariance()
 }
 
 // Define virtual functions with default implementations
-Eigen::MatrixXf ProccessModel::get_jacobian(ErrorState state, Eigen::VectorXf control_vector) {
+Eigen::MatrixXf ProccessModel::get_jacobian(ErrorState /*state*/, Eigen::VectorXf /*(control_vector*/) {
     // Default implementation
     return Eigen::MatrixXf();
 }
-Eigen::MatrixXf ProccessModel::get_noise_jacobian(ErrorState state) {
+Eigen::MatrixXf ProccessModel::get_noise_jacobian(ErrorState /*state*/) {
     // Default implementation
     return Eigen::MatrixXf();
 }

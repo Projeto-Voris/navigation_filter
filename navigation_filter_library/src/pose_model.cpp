@@ -1,6 +1,6 @@
 #include "pose_model.hpp"
 
-Eigen::MatrixXf PoseModel::get_jacobian(ErrorState state)
+Eigen::MatrixXf PoseModel::get_jacobian(ErrorState /*state*/)
 {
     Eigen::Matrix<float, 6, 18> jacobian = Eigen::Matrix<float, 6, 18>::Zero();
 
@@ -13,7 +13,7 @@ Eigen::MatrixXf PoseModel::get_jacobian(ErrorState state)
 
     return jacobian;
 }
-Eigen::MatrixXf PoseModel::get_noise_jacobian(ErrorState state)
+Eigen::MatrixXf PoseModel::get_noise_jacobian(ErrorState /*state*/)
 {
     Eigen::Matrix<float, 6, 18> jacobian = Eigen::Matrix<float, 6, 18>::Zero();
 

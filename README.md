@@ -34,6 +34,7 @@ Combined with the other packages (ORBSLAM and the DVL), this algoritm provides a
 |------------------|-----------|---------------------------|-------------------------------|-------|
 | Odom             | Pub       | `/odom`                   | `nav_msgs/Odometry`           | Final Output |
 
+
 # Commands and Compilation
 To build and run the navigation filter within your workspace, use the following commands:
 ### 1. Build the Workspace

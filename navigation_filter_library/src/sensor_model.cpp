@@ -7,7 +7,7 @@ SensorModel::SensorModel(const SensorModel& other)
       transform_(other.transform_),
       covariance_(other.covariance_)
 {}
-SensorModel::SensorModel(Eigen::Matrix4f transform, std::vector<double> noise, float dt):transform_(transform), update_time_(dt)
+SensorModel::SensorModel(Eigen::Matrix4f transform, std::vector<double> noise, float dt):update_time_(dt), transform_(transform)
 {
     covariance_ = Eigen::Map<Eigen::VectorXd>(noise.data(), noise.size()).asDiagonal();
 }
@@ -30,16 +30,16 @@ Eigen::MatrixXd SensorModel::get_covariance()
 }
 
 // Define virtual functions with default implementations
-Eigen::MatrixXf SensorModel::get_jacobian(ErrorState state) {
+Eigen::MatrixXf SensorModel::get_jacobian(ErrorState /*state*/) {
     // Default implementation
     return Eigen::MatrixXf();
 }
-Eigen::MatrixXf SensorModel::get_noise_jacobian(ErrorState state) {
+Eigen::MatrixXf SensorModel::get_noise_jacobian(ErrorState /*state*/) {
     // Default implementation
     return Eigen::MatrixXf();
 }
 
-Eigen::MatrixXf SensorModel::get_measurement(ErrorState state) {
+Eigen::MatrixXf SensorModel::get_measurement(ErrorState /*state*/) {
     // Default implementation
     return Eigen::MatrixXf();
 }

@@ -53,8 +53,14 @@ void NavFilter::updateEKF(const Eigen::MatrixXf& measurement,
     // Cálculo do ganho de Kalman K_k1, que determina o quanto o filtro deve confiar na nova medição em relação ao estado predito;
     // Se a incerteza do sistema (P) for muito alta e o ruído do sensor (S) for baixo, K será alto (o filtro confiará mais no sensor);
     // Se o sensor for ruidoso (S é grande), K será pequeno (o filtro ignorará parte da medição e confiará mais na sua própria inércia);
+
+    /*
     Eigen::MatrixXf K_k1 = P_ * H_k1.transpose() * 
-                                       (H_k1 * P_ * H_k1.transpose() + M_k1 * S_k1 * M_k1.transpose()).inverse();
+                                       (H_k1 * P_ * H_k1.transpose() + M_k1 * S_k1 * M_k1.transpose()).inverse(); */
+
+    
+    Eigen::MatrixXf K_k1 = P_ * H_k1.transpose() * (H_k1 * P_ * H_k1.transpose() + M_k1 * S_k1 * M_k1.transpose()).inverse();
+
 
     // Erro entre o que foi lido e o que ele esperava ler;
     Eigen::MatrixXf error_z = measurement - predicted_measurement;

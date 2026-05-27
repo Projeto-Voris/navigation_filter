@@ -3,7 +3,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -114,11 +113,11 @@ class NavFilterNode : public LifecycleNode
         float pose_update_time = static_cast<float>(this->get_parameter("pose.update_time").as_double());
 
         imu_transform_ = tf_buffer_.lookupTransform(
-                base_link_, imu_link_, tf2::TimePointZero);
+                base_link_, imu_link_, tf2::TimePointZero, tf2::durationFromSec(1.0));
         twist_transform_ = tf_buffer_.lookupTransform(
-                imu_link_, twist_link_, tf2::TimePointZero);
+                imu_link_, twist_link_, tf2::TimePointZero, tf2::durationFromSec(1.0));
         pose_transform_ = tf_buffer_.lookupTransform(
-                imu_link_, pose_link_, tf2::TimePointZero);
+                imu_link_, pose_link_, tf2::TimePointZero, tf2::durationFromSec(1.0));
 
         Eigen::Matrix4f imu_transform_matrix = NavFilterNode::get_matrix_from_tf(imu_transform_);
         Eigen::Matrix4f twist_transform_matrix = NavFilterNode::get_matrix_from_tf(twist_transform_);

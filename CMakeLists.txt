@@ -12,7 +12,6 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(dvl_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
@@ -44,7 +43,6 @@ ament_target_dependencies(nav_filter_lib
   sensor_msgs 
   nav_msgs 
   geometry_msgs
-  dvl_msgs
 )
 
 # 4. Criar o Executável (o Nó do ROS)
@@ -59,7 +57,6 @@ ament_target_dependencies(nav_filter_node
   rclcpp
   rclcpp_lifecycle
   std_msgs
-  dvl_msgs
   nav_msgs
   sensor_msgs
   geometry_msgs

@@ -10,11 +10,12 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/twist_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
-#include "dvl_msgs/msg/dvl.hpp"
+// #include "dvl_msgs/msg/dvl.hpp"
 #include "nav_filter.hpp"
 #include "imu_model.hpp"
 
@@ -65,13 +66,15 @@ class NavFilterNode : public LifecycleNode
 
       // IMU IMU.msgs Input ---> angular orientations, velocities and linear accelerations
       imu_subscription_ = this->create_subscription<sensor_msgs::msg::Imu>(
-      "/mavros/imu/data_raw", 10, std::bind(&NavFilterNode::imu_callback, this, std::placeholders::_1));
+      "/mavros/imu/data_raw", rclcpp::SensorDataQoS(), std::bind(&NavFilterNode::imu_callback, this, std::placeholders::_1));
+      
       // SLAM PoseStamped Input ---> position and orientation       
       pose_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-      "/pose", 10, std::bind(&NavFilterNode::pose_callback, this, std::placeholders::_1));
+      "/mavros/local_position/pose", 10, std::bind(&NavFilterNode::pose_callback, this, std::placeholders::_1));
+      
       // DVL DVL.msgs Input ---> linear velocities
-      twist_stamped_subscription_ = this->create_subscription<dvl_msgs::msg::DVL>(
-      "/dvl", 10, std::bind(&NavFilterNode::dvl_callback, this, std::placeholders::_1));
+      twist_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::TwistWithCovarianceStamped>(
+      "/dvl_twist_with_covariance", 10, std::bind(&NavFilterNode::dvl_callback, this, std::placeholders::_1));
     
     }
 
@@ -216,13 +219,13 @@ class NavFilterNode : public LifecycleNode
 
     // Dentro do dvl callback na real as únicas informações que realmente vao ser usadas são as velocidades lineares
     // No twist model, as velocidades angulares são todas zeradas
-    void dvl_callback(const dvl_msgs::msg::DVL & msg)
+    void dvl_callback(const geometry_msgs::msg::TwistWithCovarianceStamped & msg)
     {
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
       {
         // Update the filter with the DVL linear velocity and IMU angular velocity measurements
         filter_.update_twist(Eigen::Matrix<float, 6, 1>(
-          msg.velocity.x, msg.velocity.y, msg.velocity.z,
+          msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z,
           0, 0, 0));
       }
     }
@@ -289,11 +292,11 @@ class NavFilterNode : public LifecycleNode
 
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_stamped_subscription_;
-    rclcpp::Subscription<dvl_msgs::msg::DVL>::SharedPtr twist_stamped_subscription_;
+    rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_stamped_subscription_;
 
     sensor_msgs::msg::Imu initial_imu_;
     geometry_msgs::msg::PoseStamped initial_pose_;
-    dvl_msgs::msg::DVL initial_twist_;
+    geometry_msgs::msg::TwistWithCovarianceStamped initial_twist_;
 
     bool imu_initialized_;
     bool pose_initialized_;

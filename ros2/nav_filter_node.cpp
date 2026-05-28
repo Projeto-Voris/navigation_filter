@@ -65,7 +65,7 @@ class NavFilterNode : public LifecycleNode
 
       // IMU IMU.msgs Input ---> angular orientations, velocities and linear accelerations
       imu_subscription_ = this->create_subscription<sensor_msgs::msg::Imu>(
-      "/mavros/imu/data_raw", rclcpp::SensorDataQoS(), std::bind(&NavFilterNode::imu_callback, this, std::placeholders::_1));
+      "/mavros/imu/data", rclcpp::SensorDataQoS(), std::bind(&NavFilterNode::imu_callback, this, std::placeholders::_1));
       
       // SLAM PoseStamped Input ---> position and orientation       
       pose_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(

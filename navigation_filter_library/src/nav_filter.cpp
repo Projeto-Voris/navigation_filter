@@ -86,6 +86,13 @@ void NavFilter::update_pose(Eigen::Matrix<float, 6,1> pose_measurement)
     Eigen::Matrix<float, 6, 6> measurement_covariance = pose.get_covariance().cast<float>();
     Eigen::Matrix<float, 6, 18> noise_jacobian = pose.get_noise_jacobian(error_state);
 
+    // ================== PRINT BRUTO COM COUT ==================
+    std::cerr << "\n!!!! POSE VALORES INTERNOS !!!!" << std::endl;
+    std::cerr << "pose_measurement:\n" << pose_measurement << "\n" << std::flush;
+    std::cerr << "measurement_covariance:\n" << measurement_covariance << "\n" << std::flush;
+    std::cerr << "noise_jacobian:\n" << noise_jacobian << "\n----------------" << std::endl;
+    // ==========================================================
+
     this->updateEKF(pose_measurement, measurement_covariance, jacobian, predicted_measurement, noise_jacobian);
     state.position_ = state.position_ + error_state.error_position_;
 }

@@ -9,11 +9,11 @@ nav_filter:
       twist:
         link: "twist_link"
         update_time: 0.05
-        noise: [0.0, 0.0, 0.0]
+        noise: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
       pose:
         link: "pose_link"
         update_time: 0.1
-        noise: [0.0, 0.0, 0.0]
+        noise: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
       imu:
         link: "imu_link"
         update_time: 0.01

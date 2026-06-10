@@ -24,13 +24,6 @@ Eigen::MatrixXf PoseModel::get_noise_jacobian(ErrorState state)
     jacobian(4, 7)  = -1;
     jacobian(5, 8)  = -1;
 
-    /* jacobian = [[-1,  0,  0, 0, 0, 0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                   [ 0, -1,  0, 0, 0, 0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                   [ 0,  0, -1, 0, 0, 0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                   [ 0,  0,  0, 0, 0, 0, -1,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                   [ 0,  0,  0, 0, 0, 0,  0, -1,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                   [ 0,  0,  0, 0, 0, 0,  0,  0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0]]; */
-
     return jacobian;
 }
 Eigen::MatrixXf PoseModel::get_measurement(ErrorState state)

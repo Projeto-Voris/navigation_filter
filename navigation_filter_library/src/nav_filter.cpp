@@ -28,9 +28,12 @@ NavFilter::~NavFilter()
 void NavFilter::propagate_error(Eigen::Matrix<float, 6,1> imu_measurement)
 {
     Eigen::Matrix<float, 18, 18> A_k = this->imu.get_jacobian(error_state, imu_measurement);
-    this->error_state = A_k * this->error_state.get_error_vector();
     Eigen::Matrix<float, 18, 18> B_k = this->imu.get_noise_jacobian(error_state);
-    this->error_state.error_covariance_ = A_k*this->error_state.error_covariance_*A_k.transpose() + B_k*this->imu.covariance_*B_k.transpose();
+    Eigen::Matrix<float, 18, 18> P_old = this->error_state.error_covariance_;
+
+    this->error_state = A_k * this->error_state.get_error_vector();
+    this->error_state.error_covariance_ = A_k * P_old * A_k.transpose() 
+                                        + B_k * this->imu.covariance_ * B_k.transpose();
 }
 
 void NavFilter::updateEKF(const Eigen::MatrixXf& measurement, 
@@ -53,12 +56,8 @@ void NavFilter::updateEKF(const Eigen::MatrixXf& measurement,
     // Cálculo do ganho de Kalman K_k1, que determina o quanto o filtro deve confiar na nova medição em relação ao estado predito;
     // Se a incerteza do sistema (P) for muito alta e o ruído do sensor (S) for baixo, K será alto (o filtro confiará mais no sensor);
     // Se o sensor for ruidoso (S é grande), K será pequeno (o filtro ignorará parte da medição e confiará mais na sua própria inércia);
-
-    /*
-    Eigen::MatrixXf K_k1 = P_ * H_k1.transpose() * 
-                                       (H_k1 * P_ * H_k1.transpose() + M_k1 * S_k1 * M_k1.transpose()).inverse(); */
-
     
+
     Eigen::MatrixXf K_k1 = P_ * H_k1.transpose() * (H_k1 * P_ * H_k1.transpose() + M_k1 * S_k1 * M_k1.transpose()).inverse();
 
 
@@ -81,17 +80,17 @@ void NavFilter::updateEKF(const Eigen::MatrixXf& measurement,
 
 void NavFilter::update_pose(Eigen::Matrix<float, 6,1> pose_measurement)
 {
+    std::cerr << "1" << std::endl;
     Eigen::Matrix<float, 6, 18> jacobian = pose.get_jacobian(error_state);
-    Eigen::Matrix<float, 6, 1> predicted_measurement = pose.get_measurement(error_state);
-    Eigen::Matrix<float, 6, 6> measurement_covariance = pose.get_covariance().cast<float>();
-    Eigen::Matrix<float, 6, 18> noise_jacobian = pose.get_noise_jacobian(error_state);
 
-    // ================== PRINT BRUTO COM COUT ==================
-    std::cerr << "\n!!!! POSE VALORES INTERNOS !!!!" << std::endl;
-    std::cerr << "pose_measurement:\n" << pose_measurement << "\n" << std::flush;
-    std::cerr << "measurement_covariance:\n" << measurement_covariance << "\n" << std::flush;
-    std::cerr << "noise_jacobian:\n" << noise_jacobian << "\n----------------" << std::endl;
-    // ==========================================================
+    std::cerr << "2" << std::endl;
+    Eigen::Matrix<float, 6, 1> predicted_measurement = pose.get_measurement(error_state);
+
+    std::cerr << "3" << std::endl;                   //    ESTA PARANDO AQUI ENT ESSA É A MATRIZ PROBLEMÁTICAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+    Eigen::Matrix<float, 6, 6> measurement_covariance = pose.get_covariance().cast<float>();
+
+    std::cerr << "4" << std::endl;
+    Eigen::Matrix<float, 6, 18> noise_jacobian = pose.get_noise_jacobian(error_state);
 
     this->updateEKF(pose_measurement, measurement_covariance, jacobian, predicted_measurement, noise_jacobian);
     state.position_ = state.position_ + error_state.error_position_;
@@ -101,13 +100,16 @@ void NavFilter::update_pose(Eigen::Matrix<float, 6,1> pose_measurement)
 
 void NavFilter::update_twist(Eigen::Matrix<float, 6,1> twist_measurement)
 { 
-    Eigen::Matrix<float, 6, 18> jacobian = twist.get_jacobian(error_state);
+    std::cerr << "TWIST 1" << std::endl;
+    Eigen::Matrix<float, 6, 18> jacobian = twist.get_jacobian(error_state, state);
+    std::cerr << "TWIST 2" << std::endl;
     Eigen::Matrix<float, 6, 1> predicted_measurement = twist.get_measurement(error_state);
+    std::cerr << "TWIST 3" << std::endl;
     Eigen::Matrix<float, 6, 6> measurement_covariance = twist.get_covariance().cast<float>();
+    std::cerr << "TWIST 4" << std::endl;
     Eigen::Matrix<float, 6, 18> noise_jacobian = twist.get_noise_jacobian(error_state);
-
+    std::cerr << "TWIST 5" << std::endl;
     this->updateEKF(twist_measurement, measurement_covariance, jacobian, predicted_measurement, noise_jacobian);
-
     state.velocity_ = state.velocity_ + error_state.error_velocity_;
 }
 
@@ -117,8 +119,11 @@ void NavFilter::update_twist(Eigen::Matrix<float, 6,1> twist_measurement)
 
 void NavFilter::update_imu(Eigen::Matrix<float, 6,1> imu_measurement)
 {
+    std::cerr << "IMU 1" << std::endl;
     mechanization(imu_measurement);
+    std::cerr << "IMU 2" << std::endl;
     propagate_error(imu_measurement);
+    std::cerr << "IMU 3" << std::endl;
 }
 
 // Mechanization function to update the nominal state based on IMU measurements

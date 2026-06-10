@@ -18,6 +18,8 @@ class TwistModel : public SensorModel
         // Esse tipo de ruído é modelado como um processo estocástico que evolui ao longo do tempo.
         // No caso do DVL, o ruído colorido pode representar variações na medição de velocidade devido a fatores como correntes marítimas, turbulência da água, ou mesmo interfer
         using SensorModel::SensorModel;
+        // Eigen::MatrixXf get_colored_jacobian(ErrorState e_state, State state);
+        Eigen::MatrixXf get_jacobian(ErrorState e_state, State state);
         Eigen::MatrixXf get_colored_jacobian(ErrorState e_state, State state);
         Eigen::MatrixXf get_noise_jacobian(ErrorState state) override;
         Eigen::MatrixXf get_measurement(ErrorState state) override;

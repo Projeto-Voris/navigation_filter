@@ -50,11 +50,13 @@ class NavFilterNode : public LifecycleNode
 
 
       this->declare_parameter<std::string>("twist.link",  "base_link");
-      this->declare_parameter<std::vector<float>>("twist.noise", {0,0,0});
+      this->declare_parameter<std::vector<double>>("twist.noise", {0,0,0,0,0,0});
+      // this->declare_parameter<std::vector<float>>("twist.noise", {0,0,0});
       this->declare_parameter<float>("twist.update_time",  0.01);
 
       this->declare_parameter<std::string>("pose.link",  "base_link");
-      this->declare_parameter<std::vector<float>>("pose.noise", {0,0,0});
+      // this->declare_parameter<std::vector<float>>("pose.noise", {0,0,0});
+      this->declare_parameter<std::vector<double>>("pose.noise", {0,0,0,0,0,0});
       this->declare_parameter<float>("pose.update_time",  0.01);
 
       /* Publish a Odometry msg */
@@ -69,8 +71,8 @@ class NavFilterNode : public LifecycleNode
       
       // SLAM PoseStamped Input ---> position and orientation       
       pose_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-      "/mavros/local_position/pose", 10, std::bind(&NavFilterNode::pose_callback, this, std::placeholders::_1));
-      
+      "/mavros/local_position/pose", rclcpp::SensorDataQoS(), std::bind(&NavFilterNode::pose_callback, this, std::placeholders::_1));
+
       // DVL DVL.msgs Input ---> linear velocities
       twist_stamped_subscription_ = this->create_subscription<geometry_msgs::msg::TwistWithCovarianceStamped>(
       "/dvl_twist_with_covariance", 10, std::bind(&NavFilterNode::dvl_callback, this, std::placeholders::_1));
@@ -133,7 +135,9 @@ class NavFilterNode : public LifecycleNode
         TwistModel twist_model(twist_transform_matrix, twist_noise, float(twist_update_time));
         PoseModel pose_model(pose_transform_matrix, pose_noise, float(pose_update_time));
 
-        NavFilter filter_(imu_model, twist_model, pose_model);
+        // NavFilter filter_(imu_model, twist_model, pose_model);
+
+        this->filter_ = std::make_shared<NavFilter>(imu_model, twist_model, pose_model);
 
         RCLCPP_INFO(get_logger(), "Base: %s", base_link_.c_str());
         RCLCPP_INFO(get_logger(), "IMU: %s", imu_link_.c_str());
@@ -174,6 +178,7 @@ class NavFilterNode : public LifecycleNode
   private:
 
     // Declarar a msg de IMU mais recente, para compor o update_twist dentro do dvl_callback: 
+    std::shared_ptr<NavFilter> filter_;
     sensor_msgs::msg::Imu latest_imu_msg_;
 
     void imu_callback(const sensor_msgs::msg::Imu & msg)
@@ -194,10 +199,10 @@ class NavFilterNode : public LifecycleNode
                euler_angles[0], euler_angles[1], euler_angles[2];
 
         // Update the filter with the IMU measurement
-        filter_.update_imu(imu_measurement);
+        filter_->update_imu(imu_measurement);
 
         // Convert the current state to Odometry message --> deve pegar os dados que consegue com IMU e realocar eles em formato de Odom.msg
-        nav_msgs::msg::Odometry odom_msg = state_to_odom(filter_.get_state());
+        nav_msgs::msg::Odometry odom_msg = state_to_odom(filter_->get_state());
         publisher_->publish(odom_msg);
       }
     }
@@ -209,7 +214,7 @@ class NavFilterNode : public LifecycleNode
         Eigen::Quaternionf q(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z);
         Eigen::Vector3f euler_angles = q.toRotationMatrix().eulerAngles(0, 1, 2);
 
-        filter_.update_pose(Eigen::Matrix<float, 6, 1>(
+        filter_->update_pose(Eigen::Matrix<float, 6, 1>(
           msg.pose.position.x, msg.pose.position.y, msg.pose.position.z,
           euler_angles[0], euler_angles[1], euler_angles[2]));
       }
@@ -223,7 +228,7 @@ class NavFilterNode : public LifecycleNode
       if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
       {
         // Update the filter with the DVL linear velocity and IMU angular velocity measurements
-        filter_.update_twist(Eigen::Matrix<float, 6, 1>(
+        filter_->update_twist(Eigen::Matrix<float, 6, 1>(
           msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z,
           0, 0, 0));
       }
@@ -281,8 +286,6 @@ class NavFilterNode : public LifecycleNode
       transform.block<3, 3>(0, 0) = rotation;
       return transform;
     }
-
-    NavFilter filter_;
 
     tf2_ros::Buffer tf_buffer_;
     tf2_ros::TransformListener tf_listener_;

@@ -14,7 +14,7 @@
 #include "lifecycle_msgs/msg/state.hpp"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
-#include "dvl_msgs/msg/dvl.hpp"
+#include "marine_acoustic_msgs/msg/dvl.hpp"
 #include "nav_filter.hpp"
 #include "imu_model.hpp"
 

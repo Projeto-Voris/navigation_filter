@@ -13,12 +13,13 @@
   <test_depend>ament_lint_common</test_depend>
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
-  <depend>dvl_msgs</depend>
+  <depend>marine_acoustic_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>lifecycle_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>tf2_ros</depend>
+  <depend>orbslam3_msgs</depend>
   <build_depend>eigen3_cmake_module</build_depend>
   <build_export_depend>eigen3_cmake_module</build_export_depend>
   <exec_depend>eigen3_cmake_module</exec_depend>

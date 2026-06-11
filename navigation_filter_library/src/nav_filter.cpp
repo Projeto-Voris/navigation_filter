@@ -1,9 +1,9 @@
 #include <iostream>
 #include <eigen3/Eigen/Dense>
 #include "nav_filter.hpp"
-#include "imu_model.cpp"
-#include "twist_model.cpp"
-#include "pose_model.cpp"
+#include "imu_model.hpp"
+#include "twist_model.hpp"
+#include "pose_model.hpp"
 
 // Class responsible for the navigation filter operations 
 
@@ -58,7 +58,10 @@ void NavFilter::updateEKF(const Eigen::MatrixXf& measurement,
     // Se o sensor for ruidoso (S é grande), K será pequeno (o filtro ignorará parte da medição e confiará mais na sua própria inércia);
     
 
-    Eigen::MatrixXf K_k1 = P_ * H_k1.transpose() * (H_k1 * P_ * H_k1.transpose() + M_k1 * S_k1 * M_k1.transpose()).inverse();
+    // Eigen::MatrixXf K_k1 = P_ * H_k1.transpose() * (H_k1 * P_ * H_k1.transpose() + M_k1 * S_k1 * M_k1.transpose()).inverse();
+
+    Eigen::MatrixXf S = H_k1 * P_ * H_k1.transpose() + M_k1 * S_k1 * M_k1.transpose();
+    Eigen::MatrixXf K_k1 = P_ * H_k1.transpose() * S.inverse();
 
 
     // Erro entre o que foi lido e o que ele esperava ler;
@@ -86,10 +89,11 @@ void NavFilter::update_pose(Eigen::Matrix<float, 6,1> pose_measurement)
     std::cerr << "2" << std::endl;
     Eigen::Matrix<float, 6, 1> predicted_measurement = pose.get_measurement(error_state);
 
-    std::cerr << "3" << std::endl;                   //    ESTA PARANDO AQUI ENT ESSA É A MATRIZ PROBLEMÁTICAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+    std::cerr << "3 - covariance size: " << pose.get_covariance().rows() << "x" << pose.get_covariance().cols() << std::endl;
     Eigen::Matrix<float, 6, 6> measurement_covariance = pose.get_covariance().cast<float>();
 
     std::cerr << "4" << std::endl;
+    // era 6, 18
     Eigen::Matrix<float, 6, 18> noise_jacobian = pose.get_noise_jacobian(error_state);
 
     this->updateEKF(pose_measurement, measurement_covariance, jacobian, predicted_measurement, noise_jacobian);
@@ -107,7 +111,8 @@ void NavFilter::update_twist(Eigen::Matrix<float, 6,1> twist_measurement)
     std::cerr << "TWIST 3" << std::endl;
     Eigen::Matrix<float, 6, 6> measurement_covariance = twist.get_covariance().cast<float>();
     std::cerr << "TWIST 4" << std::endl;
-    Eigen::Matrix<float, 6, 18> noise_jacobian = twist.get_noise_jacobian(error_state);
+    // era 6, 18
+    Eigen::Matrix<float, 6, 6> noise_jacobian = twist.get_noise_jacobian(error_state);
     std::cerr << "TWIST 5" << std::endl;
     this->updateEKF(twist_measurement, measurement_covariance, jacobian, predicted_measurement, noise_jacobian);
     state.velocity_ = state.velocity_ + error_state.error_velocity_;

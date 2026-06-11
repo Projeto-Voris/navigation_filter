@@ -15,8 +15,8 @@ Eigen::MatrixXf PoseModel::get_jacobian(ErrorState state)
 }
 Eigen::MatrixXf PoseModel::get_noise_jacobian(ErrorState state)
 {
-    Eigen::Matrix<float, 6, 18> jacobian = Eigen::Matrix<float, 6, 18>::Zero();
-
+    Eigen::Matrix<float, 6, 6> jacobian = Eigen::Matrix<float, 6, 6>::Zero();
+    // era 6 X 6
     jacobian(0, 0)  = -1;
     jacobian(1, 1)  = -1;
     jacobian(2, 2)  = -1;

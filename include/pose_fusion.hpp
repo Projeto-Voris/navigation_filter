@@ -9,7 +9,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include <orbslam3_msgs/msg/slam_status.hpp>
-
+#include <std_srvs/srv/trigger.hpp>
 
 // NOTA: Se você tiver um pacote de mensagens gerado para o status do SLAM, 
 // inclua o header real aqui e substitua o tipo nos tópicos.
@@ -45,11 +45,14 @@ private:
     rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr dvl_pose_sub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr fused_pose_pub_;
 
+    rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr reset_dvl_pose;
+
     // --- Variáveis de Estado (Matrizes Homogêneas) ---
-    Eigen::Isometry3d T_offset_;
+    Eigen::Isometry3d T_offset_slam_;
+    Eigen::Isometry3d T_offset_dvl_;
     Eigen::Isometry3d T_last_fused_;
     Eigen::Isometry3d T_last_dvl_;
-    Eigen::Isometry3d T_last_slam_;
+    Eigen::Isometry3d T_current_slam;
 
     // --- Matrizes de Covariância ---
     std::array<double, 36> T_last_fused_covariance_;

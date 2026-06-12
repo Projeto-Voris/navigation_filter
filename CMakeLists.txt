@@ -10,7 +10,9 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(marine_acoustic_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -19,7 +21,6 @@ find_package(lifecycle_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(tf2_eigen REQUIRED)
-find_package(rclcpp_components REQUIRED)
 find_package(orbslam3_msgs REQUIRED)
 # 3. Criar a Biblioteca (onde estão seus modelos e lógica)
 add_library(nav_filter_lib
@@ -71,17 +72,23 @@ ament_target_dependencies(nav_filter_node
   tf2_ros
 )
 
-add_library(pose_fusion_component SHARED   src/pose_fusion.cpp)
+add_library(pose_fusion_component SHARED  src/pose_fusion.cpp)
 target_compile_features(pose_fusion_component PUBLIC cxx_std_17)
-target_link_libraries(pose_fusion_component "${cpp_typesupport_target}")
-ament_target_dependencies(pose_fusion_component rclcpp rclcpp_components geometry_msgs tf2_eigen orbslam3_msgs)
+# target_link_libraries(pose_fusion_component "${cpp_typesupport_target}")
+ament_target_dependencies(pose_fusion_component rclcpp rclcpp_components geometry_msgs tf2_eigen orbslam3_msgs std_srvs)
 rclcpp_components_register_node(pose_fusion_component PLUGIN "nav_filter::PoseFusionComponent" EXECUTABLE pose_fusion_node)
 
 install(TARGETS
   nav_filter_lib
   nav_filter_node
-  pose_fusion_component
   DESTINATION lib/${PROJECT_NAME}
+  )
+  
+install(TARGETS
+    pose_fusion_component
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
 )
 
 install(DIRECTORY

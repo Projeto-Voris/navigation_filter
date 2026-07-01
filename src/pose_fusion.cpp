@@ -12,6 +12,9 @@ PoseFusionComponent::PoseFusionComponent(const rclcpp::NodeOptions & options)
     RCLCPP_INFO(this->get_logger(), "Inicializando Componente de Fusão de Pose...");
 
     // Declaração de parâmetros dinâmicos
+    this->declare_parameter<double>("home_lat", -27.5951);
+    this->declare_parameter<double>("home_long", -48.5637);
+    this->declare_parameter<double>("home_alt", 2.0);
     this->declare_parameter<double>("dvl_variance_threshold", 1.0);
     this->get_parameter("dvl_variance_threshold", dvl_variance_threshold_);
 
@@ -21,7 +24,7 @@ PoseFusionComponent::PoseFusionComponent(const rclcpp::NodeOptions & options)
     T_last_fused_ = Eigen::Isometry3d::Identity();
     T_last_dvl_ = Eigen::Isometry3d::Identity();
     T_current_slam = Eigen::Isometry3d::Identity();
-    
+
     T_last_fused_covariance_.fill(0.0);
 
     // --- Configuração dos Assinantes (Subscribers) ---
@@ -44,7 +47,46 @@ PoseFusionComponent::PoseFusionComponent(const rclcpp::NodeOptions & options)
         "fused/pose_cov", 10);
 
     auto cb_group = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    auto cb_home_group = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    
+    set_home_client_ = this->create_client<mavros_msgs::srv::CommandHome>("/mavros/cmd/set_home", rmw_qos_profile_default, cb_home_group);
     reset_dvl_pose = this->create_client<std_srvs::srv::Trigger>("/waterlinked_dvl_driver/reset_dead_reckoning", rmw_qos_profile_default, cb_group);
+
+    home_trigger_timer_ = this->create_wall_timer(std::chrono::seconds(5), [this](){
+        this->send_fake_home();
+        this->home_trigger_timer_->cancel();
+    });
+}
+
+void PoseFusionComponent::send_fake_home() {
+    if (!set_home_client_->wait_for_service(std::chrono::seconds(2))) {
+        RCLCPP_WARN(this->get_logger(), "MAVROS set_home service not available yet.");
+        return;
+    }
+
+    double lat = this->get_parameter("tank_latitude").as_double();
+    double lon = this->get_parameter("tank_longitude").as_double();
+    double alt = this->get_parameter("tank_altitude").as_double();
+
+    auto request = std::make_shared<mavros_msgs::srv::CommandHome::Request>();
+    request->current_gps = false;
+    request->latitude = lat;
+    request->longitude = lon;
+    request->altitude = alt;
+
+    RCLCPP_INFO(this->get_logger(), "Anchoring EKF Origin to Tank at Lat: %f, Lon: %f", lat, lon);
+
+    auto result_future = set_home_client_->async_send_request(
+        request,
+        [this](rclcpp::Client<mavros_msgs::srv::CommandHome>::SharedFuture future) {
+            auto response = future.get();
+            if (response->success) {
+                RCLCPP_INFO(this->get_logger(), "Home set successfully! ArduSub barometer unlocked.");
+            } else {
+                RCLCPP_ERROR(this->get_logger(), "ArduSub rejected Home initialization.");
+            }
+        }
+    );
 }
 
 void PoseFusionComponent::slamPoseCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
@@ -85,6 +127,7 @@ void PoseFusionComponent::dvlPoseCallback(const geometry_msgs::msg::PoseWithCova
 
         RCLCPP_WARN(this->get_logger(), "DVL Covariance above threshold %f", dvl_variance_threshold_);
         T_offset_dvl_ = T_last_fused_;
+        print_tf(T_offset_dvl_);
         auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
 
         using ServiceResponseFuture = rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture;
@@ -111,10 +154,11 @@ void PoseFusionComponent::dvlPoseCallback(const geometry_msgs::msg::PoseWithCova
     std::array<double, 36> fused_covariance;
     // 2. Execução da Máquina de Estados de Fusão Cinemática
     if (slam_ok && has_slam_pose_) {
-        // --- MODO 1: SLAM SAUDÁVEL (Referência Absoluta Ativa) ---
+        // 
         if (!is_offset_initialized_ || map_has_changed || slam_recovered) {
-            // Recálculo imediato do offset matemático para neutralizar saltos na malha do EKF
-            T_offset_slam_ = T_last_fused_; 
+            // If slam change coordinates, restabilish new offset
+            T_offset_slam_ = T_last_fused_;
+            print_tf(T_offset_slam_); 
             is_offset_initialized_ = true;
             RCLCPP_INFO(this->get_logger(), "Discontinuidade do SLAM absorvida. Novo T_offset calculado.");
         }
@@ -186,6 +230,18 @@ void PoseFusionComponent::dvlPoseCallback(const geometry_msgs::msg::PoseWithCova
     fused_pose_pub_->publish(std::move(msg_out));
 }
 
+void PoseFusionComponent::print_tf(Eigen::Isometry3d tf){
+
+    Eigen::Matrix3d rotation = tf.rotation();
+    Eigen::Vector3d euler_angles = rotation.eulerAngles(2,1,0);
+
+    double roll = euler_angles[2]* (180.0 / M_PI);
+    double pitch = euler_angles[1]* (180.0 / M_PI);
+    double yaw = euler_angles[0]* (180.0 / M_PI);
+
+    RCLCPP_INFO(this->get_logger(), "Translation: [%f, %f, %f]", tf.translation().x(), tf.translation().y(), tf.translation().z());
+    RCLCPP_INFO(this->get_logger(), "RPY angles: [%f, %f, %f] deg", roll, pitch, yaw);
+}
 } // namespace nav_filter
 
 // Macro ROS 2 para exportar e registrar o componente no gerenciador de nós dinâmicos

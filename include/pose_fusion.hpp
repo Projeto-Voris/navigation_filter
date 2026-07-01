@@ -10,7 +10,7 @@
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include <orbslam3_msgs/msg/slam_status.hpp>
 #include <std_srvs/srv/trigger.hpp>
-
+#include <mavros_msgs/srv/command_home.hpp>
 // NOTA: Se você tiver um pacote de mensagens gerado para o status do SLAM, 
 // inclua o header real aqui e substitua o tipo nos tópicos.
 // #include "voris_interfaces/msg/slam_status.hpp"
@@ -25,14 +25,11 @@ public:
     virtual ~PoseFusionComponent() = default;
 
 private:
-    // --- Callbacks dos Assinantes ---
     void slamPoseCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
     void dvlPoseCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-    
-    // Callback temporário/mock para o status do SLAM usando uma mensagem padrão.
-    // Altere para o tipo correto da sua interface assim que integrá-la.
     void slamStatusCallback(const orbslam3_msgs::msg::SlamStatus::SharedPtr msg);
-
+    void send_fake_home();
+    void print_tf(Eigen::Isometry3d tf);
     // --- Funções Auxiliares Matemáticas ---
     std::array<double, 36> accumulateCovariance(
         const std::array<double, 36>& current_fused, 
@@ -46,6 +43,9 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr fused_pose_pub_;
 
     rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr reset_dvl_pose;
+    rclcpp::Client<mavros_msgs::srv::CommandHome>::SharedPtr set_home_client_;
+    
+    rclcpp::TimerBase::SharedPtr home_trigger_timer_;
 
     // --- Variáveis de Estado (Matrizes Homogêneas) ---
     Eigen::Isometry3d T_offset_slam_;

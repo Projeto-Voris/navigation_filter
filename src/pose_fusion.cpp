@@ -1,6 +1,5 @@
 #include "pose_fusion.hpp"
 
-#include <tf2_eigen/tf2_eigen.hpp> // Essencial para as conversões entre ROS Msg e Eigen
 #include "rclcpp_components/register_node_macro.hpp"
 
 namespace nav_filter
@@ -21,9 +20,12 @@ PoseFusionComponent::PoseFusionComponent(const rclcpp::NodeOptions & options)
     // Inicialização segura das matrizes de transformação geométrica
     T_offset_slam_ = Eigen::Isometry3d::Identity();
     T_offset_dvl_ = Eigen::Isometry3d::Identity();
+    T_slam_yaw_offset_ = Eigen::Isometry3d::Identity();
+    T_dvl_yaw_offset_ = Eigen::Isometry3d::Identity();
     T_last_fused_ = Eigen::Isometry3d::Identity();
     T_last_dvl_ = Eigen::Isometry3d::Identity();
     T_current_slam = Eigen::Isometry3d::Identity();
+    T_current_dvl = Eigen::Isometry3d::Identity();
 
     T_last_fused_covariance_.fill(0.0);
 
@@ -41,6 +43,10 @@ PoseFusionComponent::PoseFusionComponent(const rclcpp::NodeOptions & options)
     dvl_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
         "dvl/pose_cov", 10,
         std::bind(&PoseFusionComponent::dvlPoseCallback, this, std::placeholders::_1));
+    
+    vfr_hud_sub_ = this->create_subscription<mavros_msgs::msg::VfrHud>(
+        "mavros/vfr_hud", 10,
+        std::bind(&PoseFusionComponent::vfrHudCallback, this, std::placeholders::_1));
 
     // --- Configuração do Publicador (Publisher) ---
     fused_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
@@ -57,6 +63,7 @@ PoseFusionComponent::PoseFusionComponent(const rclcpp::NodeOptions & options)
         this->home_trigger_timer_->cancel();
     });
 }
+
 
 void PoseFusionComponent::send_fake_home() {
     if (!set_home_client_->wait_for_service(std::chrono::seconds(2))) {
@@ -87,6 +94,45 @@ void PoseFusionComponent::send_fake_home() {
             }
         }
     );
+    auto request_dvl = std::make_shared<std_srvs::srv::Trigger::Request>();
+    auto response_callback = [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
+    auto result = future.get();
+    if (result->success) {
+        RCLCPP_INFO(this->get_logger(), "Reseted: %s", result->message.c_str());
+    } else {
+        RCLCPP_WARN(this->get_logger(), "Fail Reset: %s", result->message.c_str());
+    }
+    };
+    reset_dvl_pose->async_send_request(request_dvl, response_callback);
+
+}
+
+void PoseFusionComponent::vfrHudCallback(const mavros_msgs::msg::VfrHud::SharedPtr msg) {
+    // Aqui você pode processar os dados do VFR_HUD conforme necessário
+    RCLCPP_INFO(this->get_logger(), "VFR_HUD received: Heading: %d, Altitude: %f", msg->heading, msg->altitude);
+    double heading_rad = static_cast<double>(msg->heading) * M_PI / 180.0; // Convert to radians
+    double yaw_compass_enu = (M_PI / 2.0) - heading_rad; // Convert compass heading to ENU yaw
+    yaw_compass_enu = atan2(sin(yaw_compass_enu), cos(yaw_compass_enu)); // Normalize to [-pi, pi]
+    RCLCPP_INFO(this->get_logger(), "Converted ENU Yaw: %f rad", yaw_compass_enu);
+
+    if(!is_slam_yaw_alighned_ && has_slam_pose_){
+        Eigen::Vector3d euler_angles = T_current_slam.rotation().eulerAngles(2, 1, 0);
+        double slam_yaw = euler_angles[0]; // Yaw angle from SLAM
+        double yaw_offset = yaw_compass_enu - slam_yaw;
+        T_slam_yaw_offset_.rotate(Eigen::AngleAxisd(yaw_offset, Eigen::Vector3d::UnitZ()));
+        is_slam_yaw_alighned_ = true;
+        RCLCPP_INFO(this->get_logger(), "SLAM Yaw aligned with Compass. Offset: %f rad", yaw_offset);
+        print_tf(T_slam_yaw_offset_);
+    }
+    if(!is_dvl_yaw_alighned_ && is_dvl_initialized_){
+        Eigen::Vector3d euler_angles_dvl = T_current_dvl.rotation().eulerAngles(2, 1, 0);
+        double dvl_yaw = euler_angles_dvl[0]; // Yaw angle from DVL
+        double yaw_offset_dvl = yaw_compass_enu - dvl_yaw;
+        T_dvl_yaw_offset_.rotate(Eigen::AngleAxisd(yaw_offset_dvl, Eigen::Vector3d::UnitZ()));
+        is_dvl_yaw_alighned_ = true;
+        RCLCPP_INFO(this->get_logger(), "DVL Yaw aligned with Compass. Offset: %f rad", yaw_offset_dvl);
+        print_tf(T_dvl_yaw_offset_);
+    }
 }
 
 void PoseFusionComponent::slamPoseCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
@@ -97,24 +143,28 @@ void PoseFusionComponent::slamPoseCallback(const geometry_msgs::msg::PoseWithCov
 
 void PoseFusionComponent::slamStatusCallback(const orbslam3_msgs::msg::SlamStatus::SharedPtr msg)
 {
-    // Mock local dos estados informados. 
-    // Quando utilizar a sua mensagem customizada, faça a atribuição direta dos campos equivalentes.
-    this->current_tracking_state_ = msg->tracking_state; // Exemplo: Forçando TRACKING_OK (2) ou TRACKING_OK_KLT (5)
+    this->current_tracking_state_ = msg->tracking_state;
     this->current_map_id_ = msg->map_id;
     this->map_changed_ = msg->map_changed;
 }
 
 void PoseFusionComponent::dvlPoseCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
 {
-    Eigen::Isometry3d T_current_dvl;
+    
     tf2::fromMsg(msg->pose.pose, T_current_dvl);
     this->get_parameter("dvl_variance_threshold", dvl_variance_threshold_);
     double alpha_target = 0.7; 
     double current_alpha = 0.0; // Começa em zero até o SLAM estabilizar
 
-    // Tratamento do primeiro ciclo do DVL para ancoragem do delta relativo
+    if (!is_dvl_yaw_alighned_ && !is_dvl_initialized_) {
+        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "Waiting VFR_HUD topic");
+    }
+
+    Eigen::Isometry3d T_slam_aligned = T_slam_yaw_offset_ * T_current_slam;
+    Eigen::Isometry3d T_dvl_aligned  = T_dvl_yaw_offset_ * T_current_dvl;
+
     if (!is_dvl_initialized_) {
-        T_last_dvl_ = T_current_dvl;
+        T_last_dvl_ = T_dvl_aligned;
         is_dvl_initialized_ = true;
         return;
     }
@@ -129,9 +179,7 @@ void PoseFusionComponent::dvlPoseCallback(const geometry_msgs::msg::PoseWithCova
         T_offset_dvl_ = T_last_fused_;
         print_tf(T_offset_dvl_);
         auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
-
-        using ServiceResponseFuture = rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture;
-        auto response_callback = [this](ServiceResponseFuture future) {
+        auto response_callback = [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
         auto result = future.get();
         if (result->success) {
             RCLCPP_INFO(this->get_logger(), "Reseted: %s", result->message.c_str());
@@ -167,14 +215,14 @@ void PoseFusionComponent::dvlPoseCallback(const geometry_msgs::msg::PoseWithCova
         if (current_alpha > alpha_target) current_alpha = alpha_target;
     }
 
-        T_out_slam = T_offset_slam_ * T_current_slam; 
+        T_out_slam = T_offset_slam_ * T_slam_aligned; 
     }
     else{
         current_alpha = 0.0;
     }
      if (dvl_ok) {
 
-        T_out_dvl = T_offset_dvl_ * T_current_dvl; 
+        T_out_dvl = T_offset_dvl_ * T_dvl_aligned; 
 
         // Propaga e incrementa continuamente a incerteza no tempo
         fused_covariance = msg->pose.covariance; // Para simplificação, utilizando a covariância atual do DVL. Ajuste conforme necessário.
@@ -221,13 +269,19 @@ void PoseFusionComponent::dvlPoseCallback(const geometry_msgs::msg::PoseWithCova
 
     // 4. Atualização do Histórico do Sistema
     T_last_fused_ = T_fused;
-    T_last_dvl_ = T_current_dvl;
+    T_last_dvl_ = T_dvl_aligned;
     T_last_fused_covariance_ = fused_covariance;
     last_tracking_state_ = current_tracking_state_;
     last_map_id_ = current_map_id_;
 
     // Publicação limpa por transferência de propriedade (move semantics)
     fused_pose_pub_->publish(std::move(msg_out));
+
+    msg_out->pose.pose = tf2::toMsg(T_out_slam);
+    slam_debug_pub_->publish(std::move(msg_out));
+
+    msg_out->pose.pose = tf2::toMsg(T_out_dvl);
+    dvl_debug_pub_->publish(std::move(msg_out));
 }
 
 void PoseFusionComponent::print_tf(Eigen::Isometry3d tf){

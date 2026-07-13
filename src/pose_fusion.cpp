@@ -13,7 +13,7 @@ PoseFusionComponent::PoseFusionComponent(const rclcpp::NodeOptions & options)
     // Declaração de parâmetros dinâmicos
     this->declare_parameter<double>("home_lat", -27.5951);
     this->declare_parameter<double>("home_long", -48.5637);
-    this->declare_parameter<double>("home_alt", 2.0);
+    this->declare_parameter<double>("home_alt", 0.0);
     this->declare_parameter<double>("dvl_variance_threshold", 1.0);
     this->get_parameter("dvl_variance_threshold", dvl_variance_threshold_);
 
@@ -45,12 +45,17 @@ PoseFusionComponent::PoseFusionComponent(const rclcpp::NodeOptions & options)
         std::bind(&PoseFusionComponent::dvlPoseCallback, this, std::placeholders::_1));
     
     vfr_hud_sub_ = this->create_subscription<mavros_msgs::msg::VfrHud>(
-        "mavros/vfr_hud", 10,
+        "/mavros/vfr_hud", 10,
         std::bind(&PoseFusionComponent::vfrHudCallback, this, std::placeholders::_1));
 
     // --- Configuração do Publicador (Publisher) ---
     fused_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
         "fused/pose_cov", 10);
+    slam_debug_pub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
+        "slam/debug", 10);
+    dvl_debug_pub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
+        "dvl/debug", 10);
+
 
     auto cb_group = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     auto cb_home_group = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -71,9 +76,9 @@ void PoseFusionComponent::send_fake_home() {
         return;
     }
 
-    double lat = this->get_parameter("tank_latitude").as_double();
-    double lon = this->get_parameter("tank_longitude").as_double();
-    double alt = this->get_parameter("tank_altitude").as_double();
+    double lat = this->get_parameter("home_lat").as_double();
+    double lon = this->get_parameter("home_lon").as_double();
+    double alt = this->get_parameter("home_alt").as_double();
 
     auto request = std::make_shared<mavros_msgs::srv::CommandHome::Request>();
     request->current_gps = false;

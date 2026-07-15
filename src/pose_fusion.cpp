@@ -15,6 +15,8 @@ PoseFusionComponent::PoseFusionComponent(const rclcpp::NodeOptions & options)
     this->declare_parameter<double>("home_long", -48.5637);
     this->declare_parameter<double>("home_alt", 0.0);
     this->declare_parameter<double>("dvl_variance_threshold", 1.0);
+    this->declare_parameter<bool>("align_heading", true);
+    this->declare_parameter<bool>("debug", false);
     this->get_parameter("dvl_variance_threshold", dvl_variance_threshold_);
 
     // Inicialização segura das matrizes de transformação geométrica
@@ -49,12 +51,12 @@ PoseFusionComponent::PoseFusionComponent(const rclcpp::NodeOptions & options)
         std::bind(&PoseFusionComponent::vfrHudCallback, this, std::placeholders::_1));
 
     // --- Configuração do Publicador (Publisher) ---
-    fused_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
-        "fused/pose_cov", 10);
-    slam_debug_pub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
-        "slam/debug", 10);
-    dvl_debug_pub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
-        "dvl/debug", 10);
+    fused_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("fused/pose_cov", 10);
+    if(this->get_parameter("debug").as_bool()) {
+        RCLCPP_INFO(this->get_logger(), "Debug mode enabled. Publishing debug topics.");
+        slam_debug_pub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("debug/slam/pose_cov", 5);
+        dvl_debug_pub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("debug/dvl/pose_cov", 5);
+    }
 
 
     auto cb_group = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -63,10 +65,10 @@ PoseFusionComponent::PoseFusionComponent(const rclcpp::NodeOptions & options)
     set_home_client_ = this->create_client<mavros_msgs::srv::CommandHome>("/mavros/cmd/set_home", rmw_qos_profile_default, cb_home_group);
     reset_dvl_pose = this->create_client<std_srvs::srv::Trigger>("/waterlinked_dvl_driver/reset_dead_reckoning", rmw_qos_profile_default, cb_group);
 
-    home_trigger_timer_ = this->create_wall_timer(std::chrono::seconds(5), [this](){
-        this->send_fake_home();
-        this->home_trigger_timer_->cancel();
-    });
+    // home_trigger_timer_ = this->create_wall_timer(std::chrono::seconds(5), [this](){
+    //     this->send_fake_home();
+    //     this->home_trigger_timer_->cancel();
+    // });
 }
 
 
@@ -114,11 +116,19 @@ void PoseFusionComponent::send_fake_home() {
 
 void PoseFusionComponent::vfrHudCallback(const mavros_msgs::msg::VfrHud::SharedPtr msg) {
     // Aqui você pode processar os dados do VFR_HUD conforme necessário
-    RCLCPP_INFO(this->get_logger(), "VFR_HUD received: Heading: %d, Altitude: %f", msg->heading, msg->altitude);
+    // RCLCPP_INFO(this->get_logger(), "VFR_HUD received: Heading: %d, Altitude: %f", msg->heading, msg->altitude);
+    bool align_heading = this->get_parameter("align_heading").as_bool();
+
+    if(!align_heading) {
+        RCLCPP_INFO(this->get_logger(), "Heading alignment disabled.");
+        is_slam_yaw_alighned_ = true;
+        is_dvl_yaw_alighned_ = true;
+        return;
+    }
+
     double heading_rad = static_cast<double>(msg->heading) * M_PI / 180.0; // Convert to radians
     double yaw_compass_enu = (M_PI / 2.0) - heading_rad; // Convert compass heading to ENU yaw
     yaw_compass_enu = atan2(sin(yaw_compass_enu), cos(yaw_compass_enu)); // Normalize to [-pi, pi]
-    RCLCPP_INFO(this->get_logger(), "Converted ENU Yaw: %f rad", yaw_compass_enu);
 
     if(!is_slam_yaw_alighned_ && has_slam_pose_){
         Eigen::Vector3d euler_angles = T_current_slam.rotation().eulerAngles(2, 1, 0);
@@ -157,8 +167,9 @@ void PoseFusionComponent::dvlPoseCallback(const geometry_msgs::msg::PoseWithCova
 {
     
     tf2::fromMsg(msg->pose.pose, T_current_dvl);
+
     this->get_parameter("dvl_variance_threshold", dvl_variance_threshold_);
-    double alpha_target = 0.7; 
+    double alpha_target = 0.5; 
     double current_alpha = 0.0; // Começa em zero até o SLAM estabilizar
 
     if (!is_dvl_yaw_alighned_ && !is_dvl_initialized_) {
@@ -183,16 +194,16 @@ void PoseFusionComponent::dvlPoseCallback(const geometry_msgs::msg::PoseWithCova
         RCLCPP_WARN(this->get_logger(), "DVL Covariance above threshold %f", dvl_variance_threshold_);
         T_offset_dvl_ = T_last_fused_;
         print_tf(T_offset_dvl_);
-        auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
-        auto response_callback = [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
-        auto result = future.get();
-        if (result->success) {
-            RCLCPP_INFO(this->get_logger(), "Reseted: %s", result->message.c_str());
-        } else {
-            RCLCPP_WARN(this->get_logger(), "Fail Reset: %s", result->message.c_str());
-        }
-        };
-        reset_dvl_pose->async_send_request(request, response_callback);
+        // auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+        // auto response_callback = [this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
+        // auto result = future.get();
+        // if (result->success) {
+        //     RCLCPP_INFO(this->get_logger(), "Reseted: %s", result->message.c_str());
+        // } else {
+        //     RCLCPP_WARN(this->get_logger(), "Fail Reset: %s", result->message.c_str());
+        // }
+        // };
+        // reset_dvl_pose->async_send_request(request, response_callback);
 
     }
 
@@ -210,10 +221,10 @@ void PoseFusionComponent::dvlPoseCallback(const geometry_msgs::msg::PoseWithCova
         // 
         if (!is_offset_initialized_ || map_has_changed || slam_recovered) {
             // If slam change coordinates, restabilish new offset
-            T_offset_slam_ = T_last_fused_;
+            T_offset_slam_ = T_last_fused_ * T_slam_yaw_offset_.inverse();
+            RCLCPP_INFO(this->get_logger(), "SLAM map changed or recovered. Recalculating T_offset_slam.");
             print_tf(T_offset_slam_); 
             is_offset_initialized_ = true;
-            RCLCPP_INFO(this->get_logger(), "Discontinuidade do SLAM absorvida. Novo T_offset calculado.");
         }
         if (current_alpha < alpha_target) {
         current_alpha += 0.05; // Ajuste este passo para controlar a velocidade da transição
@@ -254,8 +265,7 @@ void PoseFusionComponent::dvlPoseCallback(const geometry_msgs::msg::PoseWithCova
 
     } 
     else{
-        // --- MODO 3: FALHA CRÍTICA GERAL (ROV Completamente Cego) ---
-        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "Ambos os sensores falharam! Travando posição.");
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "Both sensores failed.");
         T_fused = T_last_fused_; // Estabiliza na última pose válida para mitigar acelerações espúrias
         
         fused_covariance.fill(0.0);
@@ -266,11 +276,12 @@ void PoseFusionComponent::dvlPoseCallback(const geometry_msgs::msg::PoseWithCova
 
 
     // 3. Empacotamento em unique_ptr (Indispensável para Zero-Copy via IPC)
-    auto msg_out = std::make_unique<geometry_msgs::msg::PoseWithCovarianceStamped>();
-    msg_out->header.stamp = now();
-    msg_out->header.frame_id = "map";
-    msg_out->pose.pose = tf2::toMsg(T_fused);
-    msg_out->pose.covariance = fused_covariance;
+    publish_pose_cov(T_fused, fused_covariance, "map", 0);
+    if(this->get_parameter("debug").as.bool()){
+        publish_pose_cov(T_out_slam, slam_covariance_, "map", 1);
+        publish_pose_cov(T_out_dvl, msg->pose.covariance, "map", 2);
+    }
+
 
     // 4. Atualização do Histórico do Sistema
     T_last_fused_ = T_fused;
@@ -279,14 +290,23 @@ void PoseFusionComponent::dvlPoseCallback(const geometry_msgs::msg::PoseWithCova
     last_tracking_state_ = current_tracking_state_;
     last_map_id_ = current_map_id_;
 
-    // Publicação limpa por transferência de propriedade (move semantics)
-    fused_pose_pub_->publish(std::move(msg_out));
 
-    msg_out->pose.pose = tf2::toMsg(T_out_slam);
-    slam_debug_pub_->publish(std::move(msg_out));
+}
 
-    msg_out->pose.pose = tf2::toMsg(T_out_dvl);
-    dvl_debug_pub_->publish(std::move(msg_out));
+void PoseFusionComponent::publish_pose_cov(const Eigen::Isometry3d & T_fused, const std::array<double, 36> & fused_covariance, const std::string & frame_id, const int pub_type) {
+    auto msg_out = std::make_unique<geometry_msgs::msg::PoseWithCovarianceStamped>();
+    msg_out->header.stamp = now();
+    msg_out->header.frame_id = frame_id;
+    msg_out->pose.pose = tf2::toMsg(T_fused);
+    msg_out->pose.covariance = fused_covariance;
+    
+    if(pub_type == 0) {
+        fused_pose_pub_->publish(std::move(msg_out));
+    } else if (pub_type == 1) {
+        slam_debug_pub_->publish(std::move(msg_out));
+    } else if (pub_type == 2) {
+        dvl_debug_pub_->publish(std::move(msg_out));
+    }
 }
 
 void PoseFusionComponent::print_tf(Eigen::Isometry3d tf){

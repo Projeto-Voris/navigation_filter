@@ -33,6 +33,7 @@ private:
     void dvlPoseCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
     void slamStatusCallback(const orbslam3_msgs::msg::SlamStatus::SharedPtr msg);
     void vfrHudCallback(const mavros_msgs::msg::VfrHud::SharedPtr msg);
+    void publish_pose_cov(const Eigen::Isometry3d & T_fused, const std::array<double, 36> & fused_covariance, const std::string & frame_id, const int pub_type = 0);
 
     void send_fake_home();
     void print_tf(Eigen::Isometry3d tf);

@@ -7,7 +7,7 @@ from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     # 1. Caminhos e Configurações
-    pkg_share = get_package_share_directory('navigation_filter')
+    pkg_share = get_package_share_directory('kalman_filter')
     
     config_path_arg = DeclareLaunchArgument(
         'config',
@@ -18,9 +18,9 @@ def generate_launch_description():
     # 2. O Nó de Ciclo de Vida (Lifecycle Node)
     # IMPORTANTE: Verifique se no seu CMakeLists o nome em add_executable é 'nav_filter_node'
     nav_filter_node = LifecycleNode(
-        package='navigation_filter',
-        executable='nav_filter_node',  # Ajustado de 'nav_filter' para 'nav_filter_node'
-        name='navigation_filter',
+        package='kalman_filter',
+        executable='kalman_filter_node',  # Ajustado de 'nav_filter' para 'nav_filter_node'
+        name='kalman_filter',
         namespace='', # Removi o namespace para facilitar o acesso via CLI /nav_filter
         output='screen',
         parameters=[LaunchConfiguration('config')],

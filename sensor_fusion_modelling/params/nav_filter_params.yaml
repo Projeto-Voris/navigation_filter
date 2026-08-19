@@ -1,0 +1,24 @@
+nav_filter:
+  nav_filter:
+    ros__parameters:
+      base_link: "base_link"
+      correlation_matrix:
+        row0: [0.0, 0.0, 0.0]
+        row1: [0.0, 0.0, 0.0]
+        row2: [0.0, 0.0, 0.0]
+      twist:
+        link: "twist_link"
+        update_time: 0.05
+        noise: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+      pose:
+        link: "pose_link"
+        update_time: 0.1
+        noise: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+      imu:
+        link: "imu_link"
+        update_time: 0.01
+        accelerometer_random_walk_bias: [0.0, 0.0, 0.0]
+        gyroscope_random_walk_bias: [0.0, 0.0, 0.0]
+        accelerometer_noise: [0.0, 0.0, 0.0]
+        gyroscope_noise: [0.0, 0.0, 0.0]
+        correlation_noise: [0.0, 0.0, 0.0]

@@ -1,5 +1,5 @@
 import numpy as np
-from process_model import ProcessModel
+from include.process_model import ProcessModel
 
 
 class PoseModel(ProcessModel):
@@ -20,14 +20,10 @@ class PoseModel(ProcessModel):
         jacobian[0, 0] = -1
         jacobian[1, 1] = -1
         jacobian[2, 2] = -1
-        # BUG? no C++ original: jacobian(3,6), (4,7), (5,8) -- índices 6,7,8
-        # não existem numa matriz 6x6 (só vai de 0 a 5). Traduzido fiel abaixo
-        # pra manter o mesmo comportamento (o numpy VAI estourar IndexError
-        # aqui, diferente do Eigen em C++ que só corrompe memória
-        # silenciosamente). Confirma isso antes de rodar.
-        jacobian[3, 6] = -1
-        jacobian[4, 7] = -1
-        jacobian[5, 8] = -1
+        jacobian[3, 3] = -1
+        jacobian[4, 4] = -1
+        jacobian[5, 5] = -1
+        return jacobian
 
         return jacobian
 

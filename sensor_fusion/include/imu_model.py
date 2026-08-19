@@ -1,5 +1,5 @@
 import numpy as np
-from process_model import ProcessModel
+from include.process_model import ProcessModel
 
 
 class IMUModel(ProcessModel):

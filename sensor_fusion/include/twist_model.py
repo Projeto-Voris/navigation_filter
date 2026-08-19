@@ -1,5 +1,5 @@
 import numpy as np
-from process_model import ProcessModel  # ou de onde você importar a classe base
+from include.process_model import ProcessModel  # ou de onde você importar a classe base
 
 
 class TwistModel(ProcessModel):

@@ -1,5 +1,5 @@
-nav_filter:
-  nav_filter:
+sensor_fusion:
+  sensor_fusion:
     ros__parameters:
       base_link: "base_link"
       correlation_matrix:

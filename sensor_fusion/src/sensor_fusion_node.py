@@ -173,7 +173,9 @@ class NavFilterNode(LifecycleNode):
         euler_angles = Rotation.from_quat(q).as_euler('xyz')
 
         imu_measurement = np.array([
-            msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z,
+            msg.linear_acceleration.x,
+            -msg.linear_acceleration.y,
+            -msg.linear_acceleration.z,
             euler_angles[0], euler_angles[1], euler_angles[2],
         ], dtype=np.float32)
 

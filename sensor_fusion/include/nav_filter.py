@@ -22,7 +22,6 @@ def angle_axis_to_rotation_matrix(angle: float, axis: np.ndarray) -> np.ndarray:
     
     return R
 
-
 class NavFilter:
 
     def __init__(self, imu_model=None, twist_model=None, pose_model=None):
@@ -94,6 +93,11 @@ class NavFilter:
                          jacobian, predicted_measurement, noise_jacobian)
 
         self.state.position_ = self.state.position_ + self.error_state.error_position_
+        self.state.orientation_ = self.state.orientation_ + self.error_state.error_orientation_
+        self.last_orientation = self.state.orientation_.copy()
+        self.alfa = np.zeros(3, dtype=np.float32)
+        self.beta = np.zeros(3, dtype=np.float32)
+        self.last_alfa_delta = np.zeros(3, dtype=np.float32)
 
     def update_twist(self, twist_measurement: np.ndarray):
         jacobian = self.twist.get_jacobian(self.error_state, self.state)

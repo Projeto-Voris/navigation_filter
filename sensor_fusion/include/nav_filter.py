@@ -84,19 +84,27 @@ class NavFilter:
         ) @ P_
 
     def update_pose(self, pose_measurement: np.ndarray):
+        residual = np.concatenate([
+            self.state.position_ - pose_measurement[0:3],
+            self.state.orientation_ - pose_measurement[3:6],
+        ]).astype(np.float32)
+
         jacobian = self.pose.get_jacobian(self.error_state)
         predicted_measurement = self.pose.get_measurement(self.error_state)
         measurement_covariance = self.pose.get_covariance().astype(np.float32)
         noise_jacobian = self.pose.get_noise_jacobian(self.error_state)
 
-        self.update_ekf(pose_measurement, measurement_covariance,
-                         jacobian, predicted_measurement, noise_jacobian)
+        self.update_ekf(residual, measurement_covariance,
+                        jacobian, predicted_measurement, noise_jacobian)
 
         self.state.position_ = self.state.position_ + self.error_state.error_position_
+
+        # correção que já tínhamos adicionado antes:
         self.state.orientation_ = self.state.orientation_ + self.error_state.error_orientation_
         self.last_orientation = self.state.orientation_.copy()
         self.alfa = np.zeros(3, dtype=np.float32)
         self.beta = np.zeros(3, dtype=np.float32)
+        self.last_alfa_delta = np.zeros(3, dtype=np.float32)
         self.last_alfa_delta = np.zeros(3, dtype=np.float32)
 
     def update_twist(self, twist_measurement: np.ndarray):

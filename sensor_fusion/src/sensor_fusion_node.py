@@ -22,7 +22,7 @@ from include.pose_model import PoseModel
 from include.nav_filter import NavFilter
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
-# QoS compatível com o que o MAVROS costuma publicar em tópicos de sensor
+# SÓ PARA NÃO DAR CONFLITO NA HORA DE USAR BAGS
 sensor_qos = QoSProfile(
     reliability=ReliabilityPolicy.BEST_EFFORT,
     history=HistoryPolicy.KEEP_LAST,
@@ -45,30 +45,30 @@ class NavFilterNode(LifecycleNode):
         self.declare_parameter('base_link', 'base_link')
 
         self.declare_parameter('imu.link', 'base_link')
-        self.declare_parameter('imu.accelerometer_random_walk_bias', [0.0, 0.0, 0.0])
-        self.declare_parameter('imu.gyroscope_random_walk_bias', [0.0, 0.0, 0.0])
-        self.declare_parameter('imu.accelerometer_noise', [0.0, 0.0, 0.0])
-        self.declare_parameter('imu.gyroscope_noise', [0.0, 0.0, 0.0])
-        self.declare_parameter('imu.correlation_noise', [0.0, 0.0, 0.0])
-        self.declare_parameter('imu.correlation_matrix.row0', [0.0, 0.0, 0.0])
-        self.declare_parameter('imu.correlation_matrix.row1', [0.0, 0.0, 0.0])
-        self.declare_parameter('imu.correlation_matrix.row2', [0.0, 0.0, 0.0])
-        self.declare_parameter('imu.update_time', 0.01)
+        self.declare_parameter('imu.accelerometer_random_walk_bias', [0.0000001, 0.0000001, 0.0000001])
+        self.declare_parameter('imu.gyroscope_random_walk_bias', [0.0000001, 0.0000001, 0.0000001])
+        self.declare_parameter('imu.accelerometer_noise', [0.0000001, 0.0000001, 0.0000001])
+        self.declare_parameter('imu.gyroscope_noise', [0.0000001, 0.0000001, 0.0000001])
+        self.declare_parameter('imu.correlation_noise', [0.0000001, 0.0000001, 0.0000001])
+        self.declare_parameter('imu.correlation_matrix.row0', [100.0, 0.0, 0.0])
+        self.declare_parameter('imu.correlation_matrix.row1', [0.0, 100.0, 0.0])
+        self.declare_parameter('imu.correlation_matrix.row2', [0.0, 0.0, 100.0])
+        self.declare_parameter('imu.update_time', 0.0001)
 
         self.declare_parameter('twist.link', 'base_link')
         self.declare_parameter('twist.noise', [0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
-        self.declare_parameter('twist.update_time', 0.01)
+        self.declare_parameter('twist.update_time', 0.0001)
 
         self.declare_parameter('pose.link', 'base_link')
         self.declare_parameter('pose.noise', [0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
-        self.declare_parameter('pose.update_time', 0.01)
+        self.declare_parameter('pose.update_time', 0.0001)
 
         # --- Publisher (lifecycle-managed, equivalente ao create_publisher do rclcpp_lifecycle) ---
         self.publisher_ = self.create_lifecycle_publisher(Odometry, '/nav_filter/odom', 10)
 
         # --- Subscriptions ---
         self.imu_subscription_ = self.create_subscription(Imu, '/mavros/imu/data_raw', self.imu_callback, sensor_qos)
-        self.pose_stamped_subscription_ = self.create_subscription(PoseStamped, '/mavros/local_position/pose', self.pose_callback, sensor_qos)
+        self.pose_stamped_subscription_ = self.create_subscription(PoseStamped, '/mavros/vision_pose/pose', self.pose_callback, sensor_qos)
         self.twist_stamped_subscription_ = self.create_subscription(Dvl, '/waterlinked_dvl_driver/velocity_report', self.dvl_callback, sensor_qos)
 
         # --- Estado interno ---
@@ -172,10 +172,7 @@ class NavFilterNode(LifecycleNode):
         q = [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w]
         euler_angles = Rotation.from_quat(q).as_euler('xyz')
 
-        imu_measurement = np.array([
-            msg.linear_acceleration.x,
-            -msg.linear_acceleration.y,
-            -msg.linear_acceleration.z,
+        imu_measurement = np.array([msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z,
             euler_angles[0], euler_angles[1], euler_angles[2],
         ], dtype=np.float32)
 
@@ -219,7 +216,6 @@ class NavFilterNode(LifecycleNode):
     # ------------------------------------------------------------------
 
     def _is_active(self) -> bool:
-        """Equivalente ao check de PRIMARY_STATE_ACTIVE do rclcpp_lifecycle."""
         return self._state_machine.current_state[1] == 'active'
 
     def state_to_odom(self, state) -> Odometry:
@@ -236,7 +232,6 @@ class NavFilterNode(LifecycleNode):
         odom_msg.twist.twist.linear.y = float(state.velocity_[1])
         odom_msg.twist.twist.linear.z = float(state.velocity_[2])
 
-        # equivalente a AngleAxisf(rx, UnitX) * AngleAxisf(ry, UnitY) * AngleAxisf(rz, UnitZ)
         r = Rotation.from_euler(
             'xyz',
             [state.orientation_[0], state.orientation_[1], state.orientation_[2]])
@@ -260,7 +255,6 @@ class NavFilterNode(LifecycleNode):
              tf.transform.rotation.z, tf.transform.rotation.w]
         rotation = Rotation.from_quat(q).as_matrix().astype(np.float32)
 
-        # Ajuste de frame (idêntico ao camera_to_base do C++, que ali é a identidade)
         camera_to_base = np.eye(3, dtype=np.float32)
         rotation = camera_to_base @ rotation
 

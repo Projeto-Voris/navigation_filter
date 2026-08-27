@@ -30,8 +30,6 @@ sensor_qos = QoSProfile(
     durability=DurabilityPolicy.VOLATILE,
 )
 
-
-
 class NavFilterNode(LifecycleNode):
 
     def __init__(self):
@@ -40,6 +38,7 @@ class NavFilterNode(LifecycleNode):
         # --- tf2 buffer/listener ---
         self.tf_buffer_ = tf2_ros.Buffer()
         self.tf_listener_ = tf2_ros.TransformListener(self.tf_buffer_, self)
+        self.declare_parameter('use_sim_time', True)
 
         # --- Declara parâmetros (equivalente ao declare_parameter do rclcpp) ---
         self.declare_parameter('base_link', 'base_link')
@@ -197,6 +196,8 @@ class NavFilterNode(LifecycleNode):
         ], dtype=np.float32)
 
         self.filter_.update_pose(pose_measurement)
+        odom_msg = self.state_to_odom(self.filter_.get_state())
+        self.publisher_.publish(odom_msg)
 
     def dvl_callback(self, msg: Dvl):
         if not self._is_active():
@@ -210,6 +211,8 @@ class NavFilterNode(LifecycleNode):
         ], dtype=np.float32)
 
         self.filter_.update_twist(twist_measurement)
+        odom_msg = self.state_to_odom(self.filter_.get_state())
+        self.publisher_.publish(odom_msg)
 
     # ------------------------------------------------------------------
     # Helpers
